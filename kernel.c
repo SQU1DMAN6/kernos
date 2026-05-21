@@ -59,6 +59,8 @@ static int left_shift_pressed = 0;
 static int right_shift_pressed = 0;
 static int caps_lock_enabled = 0;
 
+static int extended_scancode = 0;
+
 #define INPUT_BUFFER_SIZE 256
 #define HISTORY_SIZE 32
 
@@ -337,7 +339,7 @@ void clear_input_line(void) {
     cursor_x = prompt_x;
     cursor_y = prompt_y;
 
-    for (unsigned int x = prompt_x;
+    for (unsigned int x = 0;
         x < TERM_W;
         x++)
     {
@@ -362,16 +364,27 @@ void redraw_input_line(void)
         i < input_length;
         i++)
     {
-        unsigned int x = prompt_x + 3 + i;
-        if (x >= TERM_W) {
+        unsigned int absolute =
+            prompt_x + 3 + i;
+
+        unsigned int x =
+            absolute % TERM_W;
+
+        unsigned int y = 
+            prompt_y + (absolute / TERM_W);
+
+        if (y >= TERM_H) {
             break;
         }
 
-        term[prompt_y][x] = input_buffer[i];
+        term[y][x] = input_buffer[i];
     }
 
-    cursor_x = prompt_x + 3 + input_cursor;
-    cursor_y = prompt_y;
+    unsigned int absolute_cursor =
+        prompt_x + 3 + input_cursor;
+    
+    cursor_y = prompt_y + (absolute_cursor / TERM_W);
+    cursor_x = absolute_cursor % TERM_W;
 
     if (cursor_x >= TERM_W) {
         cursor_x = TERM_W - 1;
@@ -434,6 +447,8 @@ void load_history_entry(int index)
         input_length++;
     }
 
+    input_cursor = input_length;
+
     redraw_input_line();
 }
 
@@ -448,6 +463,58 @@ void keyboard_handler_main(void)
         return;
 
     keycode = read_port(KEYBOARD_DATA_PORT);
+    if (keycode == 0xE0) {
+        extended_scancode = 1;
+        return;
+    }
+
+    if (extended_scancode) {
+        extended_scancode = 0;
+
+        switch (keycode) {
+            case ARROW_LEFT_PRESS:
+                if (input_cursor > 0) {
+                    input_cursor--;
+                    redraw_input_line();
+                }
+                return;
+            
+            case ARROW_RIGHT_PRESS:
+                if (input_cursor < input_length) {
+                    input_cursor++;
+                    redraw_input_line();
+                }
+                return;
+            
+            case ARROW_UP_PRESS:
+                if (history_count > 0) {
+                    if (history_index == -1) {
+                        history_index = history_count;
+                    }
+
+                    if (history_index > 0) {
+                        history_index--;
+                        load_history_entry(history_index);
+                    }
+                }
+                return;
+            
+            case ARROW_DOWN_PRESS:
+                if (history_index < (int)history_count - 1) {
+                    history_index++;
+                    load_history_entry(history_index);
+                } else {
+                    history_index = history_count;
+
+                    input_length = 0;
+                    input_cursor = 0;
+                    input_buffer[0] = 0;
+
+                    redraw_input_line();
+                }
+                return;
+        }
+    }
 
     if (keycode == LEFT_SHIFT_PRESS) {
         left_shift_pressed = 1;
@@ -471,55 +538,6 @@ void keyboard_handler_main(void)
 
     if (keycode == CAPSLOCK_KEY_CODE) {
         caps_lock_enabled = !caps_lock_enabled;
-        return;
-    }
-
-    if (keycode == ARROW_UP_PRESS) {
-        if (history_count > 0) {
-            if (history_index == -1) {
-                history_index = history_count;
-            }
-
-            if (history_index > 0) {
-                history_index--;
-                load_history_entry(history_index);
-            }
-        }
-
-        return;
-    }
-
-    if (keycode == ARROW_DOWN_PRESS) {
-        if (history_index < (int)history_count - 1) {
-            history_index++;
-            load_history_entry(history_index);
-        } else {
-            history_index = history_count;
-
-            input_length = 0;
-            input_buffer[0] = 0;
-
-            redraw_input_line();
-        }
-
-        return;
-    }
-
-    if (keycode == ARROW_LEFT_PRESS) {
-        if (input_cursor > 0) {
-            input_cursor--;
-            redraw_input_line();
-        }
-
-        return;
-    }
-
-    if (keycode == ARROW_RIGHT_PRESS) {
-        if (input_cursor < input_length) {
-            input_cursor++;
-            redraw_input_line();
-        }
-
         return;
     }
 
