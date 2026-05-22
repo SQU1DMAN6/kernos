@@ -2,4 +2,3 @@
 */*.o
 iso
 kernos.iso
-Makefile
