@@ -1,0 +1,26 @@
+#ifndef KEYBOARD_H
+#define KEYBOARD_H
+
+#define KEYBOARD_DATA_PORT 0x60
+#define KEYBOARD_STATUS_PORT 0x64
+
+#define ENTER_KEY_CODE 0x1C
+#define BACKSPACE_KEY_CODE 0x0E
+
+#define LEFT_SHIFT_PRESS 0x2A
+#define LEFT_SHIFT_RELEASE 0xAA
+
+#define RIGHT_SHIFT_PRESS 0x36
+#define RIGHT_SHIFT_RELEASE 0xB6
+
+#define CAPSLOCK_KEY_CODE 0x3A
+
+#define ARROW_UP_PRESS 0x48
+#define ARROW_DOWN_PRESS 0x50
+
+#define ARROW_LEFT_PRESS 0x4B
+#define ARROW_RIGHT_PRESS 0x4D
+
+void keyboard_handler_main(void);
+
+#endif /* KEYBOARD_H */

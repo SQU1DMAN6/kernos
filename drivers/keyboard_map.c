@@ -1,3 +1,5 @@
+#include "keyboard_map.h"
+
 unsigned char keyboard_map[128] =
     {
         0,

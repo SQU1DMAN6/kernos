@@ -1,4 +1,5 @@
 *.o
+*/*.o
 iso
 kernos.iso
 Makefile
