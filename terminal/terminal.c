@@ -122,6 +122,26 @@ void term_backspace(void)
     redraw_input_line();
 }
 
+void term_del(void)
+{
+    if (input_cursor >= input_length) {
+        return;
+    }
+
+    for (unsigned int i = input_cursor;
+        i < input_length - 1;
+        i++)
+    {
+        input_buffer[i] = input_buffer[i + 1];
+    }
+
+    input_length--;
+
+    input_buffer[input_length] = 0;
+
+    redraw_input_line();
+}
+
 void render_terminal()
 {
     unsigned int i = 0;

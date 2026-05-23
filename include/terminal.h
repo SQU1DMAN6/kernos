@@ -20,6 +20,7 @@ void update_cursor(void);
 void render_terminal(void);
 void term_put_char(char c);
 void term_backspace(void);
+void term_del(void);
 void kprintln(void);
 void kprint(const char *str);
 void shell_prompt(void);

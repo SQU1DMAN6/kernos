@@ -71,6 +71,19 @@ void keyboard_handler_main(void)
                     redraw_input_line();
                 }
                 return;
+            case HOME_KEY_PRESS:
+                input_cursor = 0;
+                redraw_input_line();
+                return;
+
+            case END_KEY_PRESS:
+                input_cursor = input_length;
+                redraw_input_line();
+                return;
+
+            case DEL_KEY_PRESS:
+                term_del();
+                return;
         }
     }
 

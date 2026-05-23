@@ -1,6 +1,7 @@
 #include "terminal.h"
 #include "shell.h"
 #include "string.h"
+#include "power.h"
 
 extern char command_history[32][INPUT_BUFFER_SIZE];
 
@@ -24,11 +25,16 @@ void execute_command(void)
 
     if (strcmp(input_buffer, "help")) {
         kprint("Builtin commands:\n");
-        kprint("    help:  Show available commands\n");
-        kprint("    clear: Clear the terminal\n");
+        kprint("    help:   Show available commands\n");
+        kprint("    clear:  Clear the terminal\n");
+        kprint("    reboot: Reboot the system\n");
     }
     else if (strcmp(input_buffer, "clear")) {
         clear_screen();
+    }
+    else if (strcmp(input_buffer, "reboot")) {
+        kprint("Rebooting...\n");
+        reboot();
     }
     else if (input_length != 0) {
         kprint("Unknown command: ");

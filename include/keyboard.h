@@ -21,6 +21,10 @@
 #define ARROW_LEFT_PRESS 0x4B
 #define ARROW_RIGHT_PRESS 0x4D
 
+#define HOME_KEY_PRESS 0x47
+#define END_KEY_PRESS 0x4F
+#define DEL_KEY_PRESS 0x53
+
 void keyboard_handler_main(void);
 
 #endif /* KEYBOARD_H */
