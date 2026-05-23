@@ -83,6 +83,7 @@ void execute_command(void)
         kprint("    new:    Create file\n");
         kprint("    write:  Write text contents to a file\n");
         kprint("    cat:    Read file\n");
+        kprint("    mkd:    Make directory\n");
     }
     else if (strcmp(argv[0], "clear")) {
         clear_screen();
@@ -92,21 +93,53 @@ void execute_command(void)
         reboot();
     }
     else if (strcmp(argv[0], "ls")) {
-        fs_list();
+        if (argc > 2) {
+            kprint("Usage: ls <dir>\n");
+        }
+        else if (argc == 1) {
+            fs_list();
+        } else if (argc == 2) {
+            fs_list_path(argv[1]);
+        }
     }
     // These are temporary hard-coded tests. Until argument parsing is a thing, just keep it this way for now.
     else if (strcmp(argv[0], "new")) {
-        if (fs_create("RAM:/test.txt")) {
-            kprint("Created test.txt\n");
+        if (argc < 2) {
+            kprint("Usage: new <name>\n");
+        }
+        else if (fs_create(argv[1])) {
+            kprint("[  OK  ] NEW ");
+            kprint(argv[1]);
+            kprintln();
+        }
+    }
+    else if (strcmp(argv[0], "mkd")) {
+        if (argc < 2) {
+            kprint("Usage: mkd <name>\n");
+        }
+        else if (fs_mkdir(argv[1])) {
+            kprint("[  OK  ] MKD ");
+            kprint(argv[1]);
+            kprintln();
+        }
+        else {
+            kprint("[FAILED] MKD ");
+            kprint(argv[1]);
+            kprintln();
         }
     }
     else if (strcmp(argv[0], "write")) {
-        if (fs_write(
-            "RAM:/test.txt",
-            "Hello from Kernos"
+        if (argc < 3) {
+            kprint("Usage: write <name> <content>\n");
+        }
+        else if (fs_write(
+            argv[1],
+            argv[2]
         ))
         {
-            kprint("Write was successful\n");
+            kprint("[  OK  ] WRITE ");
+            kprint(argv[1]);
+            kprintln();
         }
     }
     else if (strcmp(argv[0], "echo")) {
@@ -121,12 +154,17 @@ void execute_command(void)
         kprintln();
     }
     else if (strcmp(argv[0], "cat")) {
-        char *data =
-            fs_read("RAM:/test.txt");
-
-        if (data) {
-            kprint(data);
-            kprintln();
+        if (argc != 2) {
+            kprint("Usage: cat <path>\n");
+        }
+        else {
+            char *data =
+                fs_read(argv[1]);
+            
+            if (data) {
+                kprint(data);
+                kprintln();
+            }
         }
     }
     else if (input_length != 0) {
