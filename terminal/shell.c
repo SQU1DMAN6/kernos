@@ -6,6 +6,42 @@
 
 extern char command_history[32][INPUT_BUFFER_SIZE];
 
+int parse_arguments(
+    char *input,
+    char *argv[]
+)
+{
+    int argc = 0;
+    int i = 0;
+
+    while (input[i]) {
+        while (input[i] == ' ') {
+            i++;
+        }
+
+        if (!input[i]) {
+            break;
+        }
+
+        argv[argc++] = &input[i];
+
+        while (input[i] && input[i] != ' ') {
+            i++;
+        }
+
+        if (input[i]) {
+            input[i] = 0;
+            i++;
+        }
+
+        if (argc >= MAX_ARGUMENTS) {
+            break;
+        }
+    }
+
+    return argc;
+}
+
 void execute_command(void)
 {
     input_buffer[input_length] = 0;
@@ -24,33 +60,47 @@ void execute_command(void)
 
     kprintln();
 
-    if (strcmp(input_buffer, "help")) {
+    char *argv[MAX_ARGUMENTS];
+
+    int argc =
+        parse_arguments(
+            input_buffer,
+            argv
+        );
+
+    if (argc == 0) {
+        shell_prompt();
+        return;
+    }
+
+    if (strcmp(argv[0], "help")) {
         kprint("Builtin commands:\n");
         kprint("    help:   Show available commands\n");
         kprint("    clear:  Clear the terminal\n");
+        kprint("    echo:   Print out text\n");
         kprint("    reboot: Reboot the system\n");
         kprint("    ls:     List files\n");
         kprint("    new:    Create file\n");
         kprint("    write:  Write text contents to a file\n");
         kprint("    cat:    Read file\n");
     }
-    else if (strcmp(input_buffer, "clear")) {
+    else if (strcmp(argv[0], "clear")) {
         clear_screen();
     }
-    else if (strcmp(input_buffer, "reboot")) {
+    else if (strcmp(argv[0], "reboot")) {
         kprint("Rebooting...\n");
         reboot();
     }
-    else if (strcmp(input_buffer, "ls")) {
+    else if (strcmp(argv[0], "ls")) {
         fs_list();
     }
     // These are temporary hard-coded tests. Until argument parsing is a thing, just keep it this way for now.
-    else if (strcmp(input_buffer, "new")) {
+    else if (strcmp(argv[0], "new")) {
         if (fs_create("RAM:/test.txt")) {
             kprint("Created test.txt\n");
         }
     }
-    else if (strcmp(input_buffer, "write")) {
+    else if (strcmp(argv[0], "write")) {
         if (fs_write(
             "RAM:/test.txt",
             "Hello from Kernos"
@@ -59,7 +109,18 @@ void execute_command(void)
             kprint("Write was successful\n");
         }
     }
-    else if (strcmp(input_buffer, "cat")) {
+    else if (strcmp(argv[0], "echo")) {
+        for (int i = 1; i < argc; i++) {
+            kprint(argv[i]);
+
+            if (i != argc - 1) {
+                kprint(" ");
+            }
+        }
+
+        kprintln();
+    }
+    else if (strcmp(argv[0], "cat")) {
         char *data =
             fs_read("RAM:/test.txt");
 
@@ -70,7 +131,7 @@ void execute_command(void)
     }
     else if (input_length != 0) {
         kprint("Unknown command: ");
-        kprint(input_buffer);
+        kprint(argv[0]);
         kprintln();
     }
 
