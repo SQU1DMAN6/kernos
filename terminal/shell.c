@@ -2,6 +2,7 @@
 #include "shell.h"
 #include "string.h"
 #include "power.h"
+#include "vfs.h"
 
 extern char command_history[32][INPUT_BUFFER_SIZE];
 
@@ -28,6 +29,10 @@ void execute_command(void)
         kprint("    help:   Show available commands\n");
         kprint("    clear:  Clear the terminal\n");
         kprint("    reboot: Reboot the system\n");
+        kprint("    ls:     List files\n");
+        kprint("    new:    Create file\n");
+        kprint("    write:  Write text contents to a file\n");
+        kprint("    cat:    Read file\n");
     }
     else if (strcmp(input_buffer, "clear")) {
         clear_screen();
@@ -35,6 +40,33 @@ void execute_command(void)
     else if (strcmp(input_buffer, "reboot")) {
         kprint("Rebooting...\n");
         reboot();
+    }
+    else if (strcmp(input_buffer, "ls")) {
+        fs_list();
+    }
+    // These are temporary hard-coded tests. Until argument parsing is a thing, just keep it this way for now.
+    else if (strcmp(input_buffer, "new")) {
+        if (fs_create("RAM:/test.txt")) {
+            kprint("Created test.txt\n");
+        }
+    }
+    else if (strcmp(input_buffer, "write")) {
+        if (fs_write(
+            "RAM:/test.txt",
+            "Hello from Kernos"
+        ))
+        {
+            kprint("Write was successful\n");
+        }
+    }
+    else if (strcmp(input_buffer, "cat")) {
+        char *data =
+            fs_read("RAM:/test.txt");
+
+        if (data) {
+            kprint(data);
+            kprintln();
+        }
     }
     else if (input_length != 0) {
         kprint("Unknown command: ");

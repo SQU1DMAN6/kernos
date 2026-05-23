@@ -2,6 +2,7 @@
 #include "idt.h"
 #include "pic.h"
 #include "memory.h"
+#include "vfs.h"
 
 extern void keyboard_handler(void);
 
@@ -13,6 +14,10 @@ void kmain(void)
     heap_init();
 
     kprint("[  OK  ] Heap initialisation successful\n");
+
+    fs_init();
+
+    kprint("[  OK  ] File system initialisation successful\n");
 
     idt_init();
 
@@ -26,6 +31,7 @@ void kmain(void)
 
     kprint("[  OK  ] Keyboard initialisation successful\n");
 
+    kprintln();
     kprint("         Welcome to Kernos, written by Quan Thai\n\n");
 
     shell_prompt();

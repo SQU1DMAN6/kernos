@@ -3,6 +3,13 @@ ISO_DIR = iso
 BOOT_DIR = $(ISO_DIR)/boot
 GRUB_DIR = $(BOOT_DIR)/grub
 GRUB_MKRESCUE := $(shell command -v grub-mkrescue 2>/dev/null || command -v grub2-mkrescue 2>/dev/null)
+CC = gcc
+CFLAGS = -Iinclude \
+	-m32 \
+	-ffreestanding \
+	-fno-pie \
+	-fno-stack-protector \
+	-nostdlib
 
 all: iso
 
@@ -47,6 +54,12 @@ mm/heap.o: mm/heap.c include/memory.h
 	-fno-stack-protector -nostdlib \
 	-c mm/heap.c -o mm/heap.o
 
+fs/vfs.o: fs/vfs.c
+	$(CC) $(CFLAGS) -c fs/vfs.c -o fs/vfs.o
+
+fs/ramfs.o: fs/ramfs.c
+	$(CC) $(CFLAGS) -c fs/ramfs.c -o fs/ramfs.o
+
 $(BOOT_DIR):
 	mkdir -p $(BOOT_DIR)
 	mkdir -p $(GRUB_DIR)
@@ -63,6 +76,8 @@ $(BOOT_DIR)/$(KERNEL).bin: \
 	arch/i386/keyboard.o \
 	arch/i386/power.o \
 	mm/heap.o \
+	fs/vfs.o \
+	fs/ramfs.o \
 	link.ld | $(BOOT_DIR)
 
 	ld -m elf_i386 -T link.ld \
@@ -78,6 +93,8 @@ $(BOOT_DIR)/$(KERNEL).bin: \
 	arch/i386/keyboard.o \
 	arch/i386/power.o \
 	mm/heap.o \
+	fs/vfs.o \
+	fs/ramfs.o \
 	-o $(BOOT_DIR)/$(KERNEL).bin
 
 iso: $(BOOT_DIR)/$(KERNEL).bin
