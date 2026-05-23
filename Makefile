@@ -42,6 +42,11 @@ lib/string.o: lib/string.c include/string.h
 terminal/shell.o: terminal/shell.c include/shell.h include/terminal.h include/string.h
 	gcc -Iinclude -m32 -ffreestanding -fno-pie -fno-stack-protector -nostdlib -c terminal/shell.c -o terminal/shell.o
 
+mm/heap.o: mm/heap.c include/memory.h
+	gcc -Iinclude -m32 -ffreestanding -fno-pie \
+	-fno-stack-protector -nostdlib \
+	-c mm/heap.c -o mm/heap.o
+
 $(BOOT_DIR):
 	mkdir -p $(BOOT_DIR)
 	mkdir -p $(GRUB_DIR)
@@ -57,6 +62,7 @@ $(BOOT_DIR)/$(KERNEL).bin: \
 	arch/i386/pic.o arch/i386/io.o \
 	arch/i386/keyboard.o \
 	arch/i386/power.o \
+	mm/heap.o \
 	link.ld | $(BOOT_DIR)
 
 	ld -m elf_i386 -T link.ld \
@@ -71,6 +77,7 @@ $(BOOT_DIR)/$(KERNEL).bin: \
 	arch/i386/io.o \
 	arch/i386/keyboard.o \
 	arch/i386/power.o \
+	mm/heap.o \
 	-o $(BOOT_DIR)/$(KERNEL).bin
 
 iso: $(BOOT_DIR)/$(KERNEL).bin

@@ -151,7 +151,7 @@ void render_terminal()
             char c = term[y][x];
 
             vidptr[i++] = (c >= 32 && c <= 126) ? c : ' ';
-            vidptr[i++] = 0x1F;
+            vidptr[i++] = 0x1f;
         }
     }
 }
