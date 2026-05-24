@@ -283,11 +283,19 @@ void redraw_input_line(void)
             }
         }
 
+        if (y >= TERM_H) {
+            break;
+        }
+
+        if (x >= TERM_W) {
+            continue;
+        }
+
         term[y][x++] =
             input_buffer[i];
     }
 
-    x = prompt_x + 3;
+    x = prompt_x + strlen(PRIMARY_PROMPT);
     y = prompt_y;
 
     for (unsigned int i = 0;
@@ -298,7 +306,7 @@ void redraw_input_line(void)
 
         if (x >= TERM_W) {
             y++;
-            x = 3;
+            x = strlen(PRIMARY_PROMPT);
         }
     }
 

@@ -369,7 +369,11 @@ int fs_write(
         return 0;
     }
 
-    strcpy(node->data, data);
+    for (unsigned int i = 0; i < len; i++) {
+        node->data[i] = data[i];
+    }
+
+    node->data[len] = 0;
 
     node->size = len;
 

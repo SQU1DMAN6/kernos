@@ -45,6 +45,7 @@ int parse_arguments(
 
 void join_arguments(
     char *dest,
+    unsigned int max_len,
     char *argv[],
     int start,
     int argc
@@ -56,10 +57,20 @@ void join_arguments(
         int j = 0;
 
         while (argv[i][j]) {
+            if (pos >= (int)(max_len - 1)) {
+                dest[pos] = 0;
+                return;
+            }
+
             dest[pos++] = argv[i][j++];
         }
 
         if (i != argc - 1) {
+            if (pos >= (int)(max_len - 1)) {
+                dest[pos] = 0;
+                return;
+            }
+
             dest[pos++] = ' ';
         }
     }
@@ -184,10 +195,16 @@ void execute_command(void)
             kprint("Usage: write <name> <content>\n");
         }
         else {
-            char content[8192];
+            char *content =
+                (char*)kmalloc(INPUT_BUFFER_SIZE);
+
+            if (!content) {
+                return;
+            }
 
             join_arguments(
                 content,
+                INPUT_BUFFER_SIZE,
                 argv,
                 2,
                 argc
@@ -202,6 +219,8 @@ void execute_command(void)
                 kprint(argv[1]);
                 kprintln();
             }
+
+            kfree(content);
         }
     }
     else if (strcmp(argv[0], "rm")) {
