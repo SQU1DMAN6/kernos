@@ -134,20 +134,31 @@ static int split_parent_path(
     }
 
     if (last_slash == -1) {
-        copy_name(parent_out, "RAM:/");
-        copy_name(name_out, path + 5);
+        copy_name(
+            parent_out,
+            "RAM:/"
+        );
+
+        copy_name(
+            name_out,
+            strip_mount(path)
+        );
+
         return 1;
     }
 
     unsigned int i;
 
-    for (i = 0; i <= (unsigned int)last_slash; i++) {
+    for (i = 0; i < (unsigned int)last_slash; i++) {
         parent_out[i] = path[i];
     }
 
     parent_out[i] = 0;
 
-    copy_name(name_out, path + last_slash + 1);
+    copy_name(
+        name_out,
+        path + last_slash + 1
+    );
 
     return 1;
 }

@@ -42,6 +42,30 @@ int parse_arguments(
     return argc;
 }
 
+void join_arguments(
+    char *dest,
+    char *argv[],
+    int start,
+    int argc
+)
+{
+    int pos = 0;
+
+    for (int i = start; i < argc; i++) {
+        int j = 0;
+
+        while (argv[i][j]) {
+            dest[pos++] = argv[i][j++];
+        }
+
+        if (i != argc - 1) {
+            dest[pos++] = ' ';
+        }
+    }
+
+    dest[pos] = 0;
+}
+
 void execute_command(void)
 {
     input_buffer[input_length] = 0;
@@ -132,14 +156,25 @@ void execute_command(void)
         if (argc < 3) {
             kprint("Usage: write <name> <content>\n");
         }
-        else if (fs_write(
-            argv[1],
-            argv[2]
-        ))
-        {
-            kprint("[  OK  ] WRITE ");
-            kprint(argv[1]);
-            kprintln();
+        else {
+            char content[8192];
+
+            join_arguments(
+                content,
+                argv,
+                2,
+                argc
+            );
+
+            if (fs_write(
+                argv[1],
+                content
+            ))
+            {
+                kprint("[  OK  ] WRITE ");
+                kprint(argv[1]);
+                kprintln();
+            }
         }
     }
     else if (strcmp(argv[0], "echo")) {

@@ -23,6 +23,9 @@ char command_history[32][INPUT_BUFFER_SIZE];
 unsigned int history_count = 0;
 int history_index = -1;
 
+static const char *PRIMARY_PROMPT = "=> ";
+static const char *CONTINUATION_PROMPT = " > ";
+
 extern void write_port(unsigned short port, unsigned char data);
 
 void update_cursor(void)
@@ -181,7 +184,7 @@ void shell_prompt(void)
     prompt_x = cursor_x;
     prompt_y = cursor_y;
 
-    kprint("=> ");
+    kprint(PRIMARY_PROMPT);
 }
 
 void clear_screen(void)
@@ -208,15 +211,33 @@ void clear_screen(void)
 }
 
 void clear_input_line(void) {
+    unsigned int total =
+        3 + input_length;
+
+    unsigned int lines =
+        (prompt_x + total) / TERM_W + 1;
+
+    for (unsigned int y = 0;
+        y < lines;
+        y++)
+    {
+        unsigned int row =
+            prompt_y + y;
+
+        if (row >= TERM_H) {
+            break;
+        }
+
+        for (unsigned int x = 0;
+            x < TERM_W;
+            x++)
+        {
+            term[row][x] = 0;
+        }
+    }
+
     cursor_x = prompt_x;
     cursor_y = prompt_y;
-
-    for (unsigned int x = 0;
-        x < TERM_W;
-        x++)
-    {
-        term[prompt_y][x] = 0;
-    }
 
     update_cursor();
 }
@@ -228,39 +249,54 @@ void redraw_input_line(void)
     cursor_x = prompt_x;
     cursor_y = prompt_y;
 
-    term[prompt_y][prompt_x + 0] = '=';
-    term[prompt_y][prompt_x + 1] = '>';
-    term[prompt_y][prompt_x + 2] = ' ';
+    unsigned int x = prompt_x;
+    unsigned int y = prompt_y;
+
+    term[y][x++] = '=';
+    term[y][x++] = '>';
+    term[y][x++] = ' ';
 
     for (unsigned int i = 0;
         i < input_length;
         i++)
     {
-        unsigned int absolute =
-            prompt_x + 3 + i;
+        if (x >= TERM_W) {
+            x = 0;
+            y++;
 
-        unsigned int x =
-            absolute % TERM_W;
+            if (y >= TERM_H) {
+                scroll_terminal();
+                y = TERM_H - 1;
+            }
 
-        unsigned int y = 
-            prompt_y + (absolute / TERM_W);
+            term[y][0] = ' ';
+            term[y][1] = '>';
+            term[y][2] = ' ';
 
-        if (y >= TERM_H) {
-            break;
+            x = 3;
         }
 
-        term[y][x] = input_buffer[i];
+        term[y][x++] =
+            input_buffer[i];
     }
 
-    unsigned int absolute_cursor =
-        prompt_x + 3 + input_cursor;
-    
-    cursor_y = prompt_y + (absolute_cursor / TERM_W);
-    cursor_x = absolute_cursor % TERM_W;
+    x = prompt_x + 3;
+    y = prompt_y;
 
-    if (cursor_x >= TERM_W) {
-        cursor_x = TERM_W - 1;
+    for (unsigned int i = 0;
+        i < input_cursor;
+        i++)
+    {
+        x++;
+
+        if (x >= TERM_W) {
+            y++;
+            x = 3;
+        }
     }
+
+    cursor_x = x;
+    cursor_y = y;
 
     update_cursor();
 }
