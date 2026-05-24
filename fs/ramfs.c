@@ -20,6 +20,36 @@ static void copy_name(
     dest[i] = 0;
 }
 
+static fs_node_t *copy_node(fs_node_t *node, fs_node_t *new_parent)
+{
+    fs_node_t *copy = (fs_node_t*)kmalloc(sizeof(fs_node_t));
+    if (!copy) return 0;
+
+    *copy = *node;
+
+    copy->parent = new_parent;
+    copy->next = new_parent->children;
+    new_parent->children = copy;
+
+    if (node->type == FS_FILE && node->data) {
+        unsigned int len = node->size;
+        copy->data = kmalloc(len + 1);
+        if (copy->data) {
+            strcpy(copy->data, node->data);
+        }
+    }
+
+    fs_node_t *child = node->children;
+    copy->children = 0;
+
+    while (child) {
+        copy_node(child, copy);
+        child = child->next;
+    }
+
+    return copy;
+}
+
 static int name_equals(
     const char *a,
     const char *b
@@ -55,6 +85,31 @@ static fs_node_t *find_child(
             return current;
         }
 
+        current = current->next;
+    }
+
+    return 0;
+}
+
+static int unlink_child(
+    fs_node_t *parent,
+    fs_node_t *target
+)
+{
+    fs_node_t *current = parent->children;
+    fs_node_t *prev = 0;
+
+    while (current) {
+        if (current == target) {
+            if (prev) {
+                prev->next = current->next;
+            } else {
+                parent->children = current->next;
+            }
+            return 1;
+        }
+
+        prev = current;
         current = current->next;
     }
 
@@ -335,6 +390,102 @@ char *fs_read(const char *path)
     }
 
     return node->data;
+}
+
+int fs_remove(const char *path)
+{
+    fs_node_t *node = resolve_path(path);
+    if (!node || !node->parent) {
+        return 0;
+    }
+
+    if (!unlink_child(node->parent, node)) {
+        return 0;
+    }
+
+    if (node->data) {
+        kfree(node->data);
+    }
+
+    kfree(node);
+    return 1;
+}
+
+int fs_rename(const char *path, const char *new_name)
+{
+    fs_node_t *node = resolve_path(path);
+    if (!node) return 0;
+
+    copy_name(node->name, new_name);
+    return 1;
+}
+
+int fs_move(const char *src, const char *dst)
+{
+    fs_node_t *node = resolve_path(src);
+    if (!node || !node->parent) return 0;
+
+    char parent_path[FS_MAX_PATH];
+    char name[FS_MAX_NAME];
+
+    if (!split_parent_path(dst, parent_path, name)) {
+        return 0;
+    }
+
+    fs_node_t *new_parent = resolve_path(parent_path);
+    if (!new_parent) return 0;
+
+    unlink_child(node->parent, node);
+
+    node->parent = new_parent;
+    copy_name(node->name, name);
+
+    node->next = new_parent->children;
+    new_parent->children = node;
+
+    return 1;
+}
+
+int fs_copy(
+    const char *src,
+    const char *dst
+)
+{
+    fs_node_t *node =
+        resolve_path(src);
+
+    if (!node) {
+        return 0;
+    }
+
+    char parent_path[FS_MAX_PATH];
+    char name[FS_MAX_NAME];
+
+    if (!split_parent_path(
+        dst,
+        parent_path,
+        name
+    )) {
+        return 0;
+    }
+
+    fs_node_t *parent =
+        resolve_path(parent_path);
+
+    if (!parent) {
+        return 0;
+    }
+
+    fs_node_t *copy =
+        copy_node(node, parent);
+
+    if (!copy) {
+        return 0;
+    }
+
+    copy_name(copy->name, name);
+
+    return 1;
 }
 
 void fs_list_path(const char *path)

@@ -29,13 +29,14 @@ void fs_init(void);
 
 int fs_create(const char *path);
 int fs_mkdir (const char *path);
-
 int fs_write(
     const char *path,
     const char *data
 );
-
 char *fs_read(const char *path);
+int fs_remove(const char *path);
+int fs_move(const char *src, const char *dst);
+int fs_copy(const char *src, const char *dst);
 
 void fs_list(void);
 void fs_list_path(const char *path);

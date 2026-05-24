@@ -252,9 +252,12 @@ void redraw_input_line(void)
     unsigned int x = prompt_x;
     unsigned int y = prompt_y;
 
-    term[y][x++] = '=';
-    term[y][x++] = '>';
-    term[y][x++] = ' ';
+    for (unsigned int i = 0;
+        PRIMARY_PROMPT[i];
+        i++)
+    {
+        term[y][x++] = PRIMARY_PROMPT[i];
+    }
 
     for (unsigned int i = 0;
         i < input_length;
@@ -269,11 +272,15 @@ void redraw_input_line(void)
                 y = TERM_H - 1;
             }
 
-            term[y][0] = ' ';
-            term[y][1] = '>';
-            term[y][2] = ' ';
+            x = 0;
 
-            x = 3;
+            for (unsigned int j = 0;
+                CONTINUATION_PROMPT[j];
+                j++)
+            {
+                term[y][x++] =
+                    CONTINUATION_PROMPT[j];
+            }
         }
 
         term[y][x++] =

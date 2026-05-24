@@ -3,6 +3,7 @@
 #include "string.h"
 #include "power.h"
 #include "vfs.h"
+#include "memory.h"
 
 extern char command_history[32][INPUT_BUFFER_SIZE];
 
@@ -66,6 +67,28 @@ void join_arguments(
     dest[pos] = 0;
 }
 
+void print_uint(unsigned int value)
+{
+    char buffer[16];
+    int i = 0;
+
+    if (value == 0) {
+        kprint("0");
+        return;
+    }
+
+    while (value > 0) {
+        buffer[i++] =
+            '0' + (value % 10);
+
+        value /= 10;
+    }
+
+    while (i > 0) {
+        term_put_char(buffer[--i]);
+    }
+}
+
 void execute_command(void)
 {
     input_buffer[input_length] = 0;
@@ -108,6 +131,10 @@ void execute_command(void)
         kprint("    write:  Write text contents to a file\n");
         kprint("    cat:    Read file\n");
         kprint("    mkd:    Make directory\n");
+        kprint("    rm:     Remove file or directory\n");
+        kprint("    mv:     Move or rename\n");
+        kprint("    cp:     Copy file\n");
+        kprint("    memi:   Memory information\n");
     }
     else if (strcmp(argv[0], "clear")) {
         clear_screen();
@@ -175,6 +202,94 @@ void execute_command(void)
                 kprint(argv[1]);
                 kprintln();
             }
+        }
+    }
+    else if (strcmp(argv[0], "rm")) {
+        if (argc < 2) {
+            kprint("Usage: rm <path>\n");
+        }
+        else {
+            for (int i = 1; i < argc; i++) {
+                if (fs_remove(argv[i])) {
+                    kprint("[  OK  ] RM ");
+                    kprint(argv[i]);
+                    kprintln();
+                } else {
+                    kprint("[FAILED] RM ");
+                    kprint(argv[i]);
+                    kprintln();
+                }
+            }
+        }
+    }
+    else if (strcmp(argv[0], "mv")) {
+        if (argc != 3) {
+            kprint("Usage: mv <src> <dst>\n");
+        }
+        else {
+            if (fs_move(argv[1], argv[2])) {
+                kprint("[  OK  ] MV ");
+                kprint(argv[1]);
+                kprint(" -> ");
+                kprint(argv[2]);
+                kprintln();
+            } else {
+                kprint("[FAILED] MV ");
+                kprint(argv[1]);
+                kprint(" -> ");
+                kprint(argv[2]);
+                kprintln();
+            }
+        }
+    }
+    else if (strcmp(argv[0], "cp")) {
+        if (argc != 3) {
+            kprint("Usage: cp <src> <dst>\n");
+        }
+        else {
+            if (fs_copy(argv[1], argv[2])) {
+                kprint("[  OK  ] CP ");
+                kprint(argv[1]);
+                kprint(" -> ");
+                kprint(argv[2]);
+                kprintln();
+            } else {
+                kprint("[FAILED] CP ");
+                kprint(argv[1]);
+                kprint(" -> ");
+                kprint(argv[2]);
+                kprintln();
+            }
+        }
+    }
+    else if (strcmp(argv[0], "memi")) {
+        if (argc != 2 && argc != 1) {
+            kprint("Usage: memi -total|-used|-free\n");
+        } else if (argc == 1) {
+            kprint("Total: ");
+            print_uint(heap_total());
+            kprint("\nUsed: ");
+            print_uint(heap_used());
+            kprint("\nFree: ");
+            print_uint(heap_free());
+            kprintln();
+        }
+        else if (strcmp(argv[1], "-total")) {
+            print_uint(heap_total());
+            kprintln();
+        }
+        else if (strcmp(argv[1], "-used")) {
+            print_uint(heap_used());
+            kprintln();
+        }
+        else if (strcmp(argv[1], "-free")) {
+            print_uint(heap_free());
+            kprintln();
+        }
+        else {
+            kprint("Unknown flag: ");
+            kprint(argv[1]);
+            kprintln();
         }
     }
     else if (strcmp(argv[0], "echo")) {

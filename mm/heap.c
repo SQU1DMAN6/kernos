@@ -112,3 +112,42 @@ void kfree(void *ptr)
 
     merge_free_blocks();
 }
+
+unsigned int heap_total(void)
+{
+    return KERNEL_HEAP_SIZE;
+}
+
+unsigned int heap_used(void)
+{
+    unsigned int used = 0;
+
+    heap_block_t *current = heap_head;
+
+    while (current) {
+        if (!current->free) {
+            used += current->size;
+        }
+
+        current = current->next;
+    }
+
+    return used;
+}
+
+unsigned int heap_free(void)
+{
+    unsigned int free = 0;
+
+    heap_block_t *current = heap_head;
+
+    while (current) {
+        if (current->free) {
+            free += current->size;
+        }
+
+        current = current->next;
+    }
+
+    return free;
+}
