@@ -2,6 +2,10 @@
 #include "keyboard_map.h"
 #include "shell.h"
 #include "string.h"
+#include "framebuffer.h"
+#include "kernos8x16.h"
+#include <stddef.h>
+#include <stdint.h>
 
 char *vidptr = (char*)0xb8000;
 
@@ -26,7 +30,36 @@ int history_index = -1;
 static const char *PRIMARY_PROMPT = "=> ";
 static const char *CONTINUATION_PROMPT = " > ";
 
+static uint32_t fg_colour = 0xFFFFFF;
+static uint32_t bg_colour = 0x000000;
+
 extern void write_port(unsigned short port, unsigned char data);
+
+void terminal_set_colour(uint32_t fg, uint32_t bg)
+{
+    fg_colour = fg;
+    bg_colour = bg;
+}
+
+static void draw_char_fb(int cx, int cy, char c)
+{
+    if ((unsigned char)c >= 256)
+        return;
+
+    int px = cx * KERNOS_FONT_WIDTH;
+    int py = cy * KERNOS_FONT_HEIGHT;
+
+    const uint8_t *glyph = kernos_font8x16[(uint8_t)c];
+
+    for (int y = 0; y < KERNOS_FONT_HEIGHT; y++) {
+        uint8_t row = glyph[y];
+
+        for (int x = 0; x < KERNOS_FONT_WIDTH; x++) {
+            uint32_t colour = (row & (0x80 >> x)) ? fg_colour : bg_colour;
+            put_pixel(px + x, py + y, colour);
+        }
+    }
+}
 
 void update_cursor(void)
 {
@@ -147,14 +180,9 @@ void term_del(void)
 
 void render_terminal()
 {
-    unsigned int i = 0;
-
     for (unsigned int y = 0; y < TERM_H; y++) {
         for (unsigned int x = 0; x < TERM_W; x++) {
-            char c = term[y][x];
-
-            vidptr[i++] = (c >= 32 && c <= 126) ? c : ' ';
-            vidptr[i++] = 0x1f;
+            draw_char_fb(x, y, term[y][x]);
         }
     }
 }
@@ -173,10 +201,31 @@ void kprintln(void)
 
 void kprint(const char *str)
 {
+    terminal_set_colour(0xFFFFFF, 0x000000);
+
     unsigned int i = 0;
     while (str[i] != '\0') {
         term_put_char(str[i++]);
     }
+}
+
+void kprint_uint(uint32_t value)
+{
+    char buf[11]; // max: 4294967295 + null
+    int i = 10;
+    buf[i] = '\0';
+
+    if (value == 0) {
+        kprint("0");
+        return;
+    }
+
+    while (value > 0 && i > 0) {
+        buf[--i] = '0' + (value % 10);
+        value /= 10;
+    }
+
+    kprint(&buf[i]);
 }
 
 void shell_prompt(void)
@@ -196,11 +245,11 @@ void clear_screen(void)
         }
     }
 
-    // Clear VGA text memory
-    unsigned int i = 0;
-    while (i < (TERM_W * TERM_H * 2)) {
-        vidptr[i++] = ' ';
-        vidptr[i++] = 0x1f;
+    // Clear framebuffer
+    for (unsigned int y = 0; y < framebuffer.height; y++) {
+        for (unsigned int x = 0; x < framebuffer.width; x++) {
+            put_pixel(x, y, bg_colour);
+        }
     }
 
     // Reset cursor position

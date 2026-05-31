@@ -23,6 +23,12 @@ kc.o: kernel.c include/keyboard_map.h include/terminal.h include/idt.h include/p
 drivers/keyboard_map.o: drivers/keyboard_map.c include/keyboard_map.h
 	gcc -Iinclude -m32 -ffreestanding -fno-pie -fno-stack-protector -nostdlib -c drivers/keyboard_map.c -o drivers/keyboard_map.o
 
+drivers/framebuffer.o: drivers/framebuffer.c include/framebuffer.h
+	gcc $(CFLAGS) -c drivers/framebuffer.c -o drivers/framebuffer.o
+
+fonts/kernos8x16.o: fonts/kernos8x16.c include/kernos8x16.h
+	gcc $(CFLAGS) -c fonts/kernos8x16.c -o fonts/kernos8x16.o
+
 terminal/terminal.o: terminal/terminal.c include/terminal.h include/keyboard_map.h
 	gcc -Iinclude -m32 -ffreestanding -fno-pie -fno-stack-protector -nostdlib -c terminal/terminal.c -o terminal/terminal.o
 
@@ -68,6 +74,8 @@ $(BOOT_DIR)/$(KERNEL).bin: \
 	kasm.o \
 	kc.o \
 	drivers/keyboard_map.o \
+	drivers/framebuffer.o \
+	fonts/kernos8x16.o \
 	terminal/terminal.o \
 	terminal/shell.o \
 	lib/string.o \
@@ -84,6 +92,8 @@ $(BOOT_DIR)/$(KERNEL).bin: \
 	kasm.o \
 	kc.o \
 	drivers/keyboard_map.o \
+	drivers/framebuffer.o \
+	fonts/kernos8x16.o \
 	terminal/terminal.o \
 	terminal/shell.o \
 	lib/string.o \
@@ -104,7 +114,7 @@ iso: $(BOOT_DIR)/$(KERNEL).bin
 run: iso
 	qemu-system-x86_64 \
 	-cdrom $(KERNEL).iso \
-	-display gtk \
+	-display sdl \
 	-serial stdio
 
 clean:

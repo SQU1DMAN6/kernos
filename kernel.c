@@ -3,13 +3,90 @@
 #include "pic.h"
 #include "memory.h"
 #include "vfs.h"
+#include "framebuffer.h"
+#include <stdint.h>
+#include <stddef.h>
+
+struct mb_tag {
+    uint32_t type;
+    uint32_t size;
+};
+
+struct mb_framebuffer_tag {
+    uint32_t type;
+    uint32_t size;
+    uint64_t framebuffer_addr;
+    uint32_t framebuffer_pitch;
+    uint32_t framebuffer_width;
+    uint32_t framebuffer_height;
+    uint8_t framebuffer_bpp;
+    uint8_t framebuffer_type;
+    uint16_t reserved;
+} __attribute__((packed));
 
 extern void keyboard_handler(void);
 
-void kmain(void)
+static void init_framebuffer(uint32_t mb_info)
 {
+    uint8_t *ptr = (uint8_t *)mb_info;
+
+    uint32_t total_size = *(uint32_t *)ptr;
+    ptr += 8;
+
+    uint8_t *end = (uint8_t *)mb_info + total_size;
+
+    while (ptr < end) {
+        struct mb_tag *tag = (struct mb_tag *)ptr;
+
+        if (tag->type == 0)
+            break;
+
+        if (tag->type == 8) {
+            uint8_t *t = (uint8_t *)tag;
+
+            uint64_t addr = *(uint64_t *)(t + 8);
+            uint32_t pitch = *(uint32_t *)(t + 16);
+            uint32_t width = *(uint32_t *)(t + 20);
+            uint32_t height = *(uint32_t *)(t + 24);
+            uint8_t bpp = *(uint8_t *)(t + 28);
+
+            framebuffer_init(
+                (uint32_t *)(uintptr_t)addr,
+                width,
+                height,
+                pitch,
+                bpp
+            );
+
+            return;
+        }
+
+        ptr += (tag->size + 7) & ~7;
+    }
+}
+
+void kmain(uint32_t magic, uint32_t mb_info)
+{
+    (void)magic;
+    init_framebuffer(mb_info);
+    init_terminal_bounds();
+
     clear_screen();
-    kprint("Booting Kernos...\n");
+
+    // kprint("Booting Kernos...\n");
+
+    kprint("w=");
+    kprint_uint(framebuffer.width);
+
+    kprint(" h=");
+    kprint_uint(framebuffer.height);
+
+    // kprintln();
+    // kprint(" p=");
+    // kprint_uint(framebuffer.pitch);
+
+    // kprint(" b=");
+    // kprint_uint(framebuffer.bpp);
 
     heap_init();
 

@@ -13,6 +13,16 @@ header_start:
     dd header_end - header_start ; Header length
     dd 0x100000000 - (0xE85250D6 + 0 + (header_end - header_start))
 
+    ; Framebuffer request tag
+    dw 5    ; type = framebuffer request
+    dw 0    ; flags
+    dd 20   ; size
+    dd 1024 ; width
+    dd 768  ; height
+    dd 32   ; bpp
+
+    align 8 ; Pad to the next 8-byte boundary
+    
     ; End tag
     dw 0
     dw 0
@@ -100,6 +110,9 @@ _start:
 
     mov esp, stack_space ; Set the stack pointer
     and esp, 0xFFFFFFF0
+
+    push ebx
+    push eax
     call kmain
 
 halt:
