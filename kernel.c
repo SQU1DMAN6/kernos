@@ -73,20 +73,7 @@ void kmain(uint32_t magic, uint32_t mb_info)
 
     clear_screen();
 
-    // kprint("Booting Kernos...\n");
-
-    kprint("w=");
-    kprint_uint(framebuffer.width);
-
-    kprint(" h=");
-    kprint_uint(framebuffer.height);
-
-    // kprintln();
-    // kprint(" p=");
-    // kprint_uint(framebuffer.pitch);
-
-    // kprint(" b=");
-    // kprint_uint(framebuffer.bpp);
+    kprint("Booting Kernos...\n");
 
     heap_init();
 
