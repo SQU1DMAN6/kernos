@@ -20,7 +20,6 @@ void framebuffer_init(
     uint32_t pitch,
     uint8_t bpp
 );
-void init_terminal_bounds();
 void put_pixel(uint32_t x, uint32_t y, uint32_t colour);
 
 #endif

@@ -27,6 +27,6 @@ void pic_remap_and_mask(void)
 void kb_init(void)
 {
     // Enable keyboard IRQ1 on master (bit 1 cleared), mask all slave IRQs.
-    write_port(0x21, 0xFD);
+    write_port(0x21, 0xFC);
     write_port(0xA1, 0xFF);
 }

@@ -3,6 +3,7 @@
 #include "shell.h"
 #include "string.h"
 #include "framebuffer.h"
+#include "timer.h"
 #include "kernos8x16.h"
 #include <stddef.h>
 #include <stdint.h>
@@ -33,6 +34,14 @@ static const char *CONTINUATION_PROMPT = " > ";
 static uint32_t fg_colour = 0xFFFFFF;
 static uint32_t bg_colour = 0x000000;
 
+static unsigned int cursor_visible = 1;
+static unsigned int last_cursor_tick = 0;
+
+static int terminal_dirty = 1;
+
+static int prev_cursor_x = 0;
+static int prev_cursor_y = 0;
+
 extern void write_port(unsigned short port, unsigned char data);
 
 void terminal_set_colour(uint32_t fg, uint32_t bg)
@@ -57,6 +66,24 @@ static void draw_char_fb(int cx, int cy, char c)
         for (int x = 0; x < KERNOS_FONT_WIDTH; x++) {
             uint32_t colour = (row & (0x80 >> x)) ? fg_colour : bg_colour;
             put_pixel(px + x, py + y, colour);
+        }
+    }
+}
+
+static void draw_cursor_fb(int cx, int cy)
+{
+    int px = cx * KERNOS_FONT_WIDTH;
+    int py = cy * KERNOS_FONT_HEIGHT;
+
+    for (int y = KERNOS_FONT_HEIGHT - 2;
+        y < KERNOS_FONT_HEIGHT;
+        y++)
+    {
+        for (int x = 0;
+            x < KERNOS_FONT_WIDTH;
+            x++)
+        {
+            put_pixel(px + x, py + y, fg_colour);
         }
     }
 }
@@ -127,6 +154,7 @@ void term_put_char(char c)
 
     if (cursor_y < TERM_H && cursor_x < TERM_W) {
         term[cursor_y][cursor_x] = c;
+        terminal_dirty = 1;
     }
 
     cursor_x++;
@@ -180,11 +208,32 @@ void term_del(void)
 
 void render_terminal()
 {
+    if (!terminal_dirty) return;
+
     for (unsigned int y = 0; y < TERM_H; y++) {
         for (unsigned int x = 0; x < TERM_W; x++) {
             draw_char_fb(x, y, term[y][x]);
         }
     }
+
+    terminal_dirty = 0;
+}
+
+void render_cursor(void)
+{
+    // Erase the previous cursor by redrawing that cell
+    draw_char_fb(
+        prev_cursor_x,
+        prev_cursor_y,
+        term[prev_cursor_y][prev_cursor_x]
+    );
+
+    if ((timer_ticks % 100) < 50) {
+        draw_cursor_fb(cursor_x, cursor_y);
+    }
+
+    prev_cursor_x = cursor_x;
+    prev_cursor_y = cursor_y;
 }
 
 void kprintln(void)

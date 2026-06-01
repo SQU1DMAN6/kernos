@@ -39,6 +39,7 @@ global load_idt
 
 extern kmain ; kmain is defined in the C file
 extern keyboard_handler_main
+extern timer_handler_main
 
 gdt_start:
     dq 0
@@ -80,6 +81,18 @@ load_idt:
     mov edx, [esp + 4]
     lidt [edx]
     ret
+
+global timer_handler
+
+timer_handler:
+    pusha
+
+    cli
+
+    call timer_handler_main
+
+    popa
+    iretd
 
 keyboard_handler:
     pusha

@@ -49,6 +49,11 @@ arch/i386/power.o: arch/i386/power.c include/power.h include/io.h
 	-fno-stack-protector -nostdlib \
 	-c arch/i386/power.c -o arch/i386/power.o
 
+arch/i386/timer.o: arch/i386/timer.c include/timer.h include/io.h
+	gcc -Iinclude -m32 -ffreestanding -fno-pie \
+	-fno-stack-protector -nostdlib \
+	-c arch/i386/timer.c -o arch/i386/timer.o
+
 lib/string.o: lib/string.c include/string.h
 	gcc -Iinclude -m32 -ffreestanding -fno-pie -fno-stack-protector -nostdlib -c lib/string.c -o lib/string.o
 
@@ -83,6 +88,7 @@ $(BOOT_DIR)/$(KERNEL).bin: \
 	arch/i386/pic.o arch/i386/io.o \
 	arch/i386/keyboard.o \
 	arch/i386/power.o \
+	arch/i386/timer.o \
 	mm/heap.o \
 	fs/vfs.o \
 	fs/ramfs.o \
@@ -102,6 +108,7 @@ $(BOOT_DIR)/$(KERNEL).bin: \
 	arch/i386/io.o \
 	arch/i386/keyboard.o \
 	arch/i386/power.o \
+	arch/i386/timer.o \
 	mm/heap.o \
 	fs/vfs.o \
 	fs/ramfs.o \

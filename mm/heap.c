@@ -1,4 +1,5 @@
 #include "memory.h"
+#include "io.h"
 
 #define KERNEL_HEAP_SIZE (1024 * 1024)
 
@@ -48,6 +49,10 @@ static void split_block(
 
 void *kmalloc(unsigned int size)
 {
+    unsigned long flags;
+
+    __asm__ __volatile__("pushf; pop %0; cli" : "=r"(flags));
+
     heap_block_t *current = heap_head;
 
     // 8-byte alignment
@@ -73,6 +78,8 @@ void *kmalloc(unsigned int size)
 
         current = current->next;
     }
+
+    __asm__ __volatile__("push %0; popf" :: "r"(flags));
 
     return 0;
 }
@@ -103,6 +110,9 @@ void kfree(void *ptr)
         return;
     }
 
+    unsigned long flags;
+    __asm__ __volatile__("pushf; pop %0; cli" : "=r"(flags));
+
     heap_block_t *block =
         (heap_block_t*)
         ((unsigned char*)ptr -
@@ -111,6 +121,8 @@ void kfree(void *ptr)
     block->free = 1;
 
     merge_free_blocks();
+
+    __asm__ __volatile__("push %0; popf" :: "r"(flags));
 }
 
 unsigned int heap_total(void)

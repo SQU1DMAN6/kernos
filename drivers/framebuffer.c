@@ -20,12 +20,6 @@ void framebuffer_init(
     framebuffer.bpp = bpp;
 }
 
-void init_terminal_bounds()
-{
-    // TERM_W = framebuffer.width / KERNOS_FONT_WIDTH;
-    // TERM_H = framebuffer.height / KERNOS_FONT_HEIGHT;
-}
-
 void put_pixel(uint32_t x, uint32_t y, uint32_t colour)
 {
     if (!framebuffer.address || framebuffer.width == 0 || framebuffer.height == 0)

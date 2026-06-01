@@ -4,6 +4,7 @@
 #include "memory.h"
 #include "vfs.h"
 #include "framebuffer.h"
+#include "timer.h"
 #include <stdint.h>
 #include <stddef.h>
 
@@ -69,7 +70,6 @@ void kmain(uint32_t magic, uint32_t mb_info)
 {
     (void)magic;
     init_framebuffer(mb_info);
-    init_terminal_bounds();
 
     clear_screen();
 
@@ -87,6 +87,10 @@ void kmain(uint32_t magic, uint32_t mb_info)
 
     kprint("[  OK  ] IDT initialisation successful\n");
 
+    timer_init();
+
+    kprint("[  OK  ] Timer initialisation successful\n");
+
     __asm__ __volatile__("sti");
 
     kprint("[  OK  ] System is stable\n");
@@ -100,8 +104,9 @@ void kmain(uint32_t magic, uint32_t mb_info)
 
     shell_prompt();
 
-    while(1) {
+    while (1) {
         render_terminal();
+        render_cursor();
         __asm__("hlt");
     }
 }

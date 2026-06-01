@@ -7,6 +7,7 @@
 #define KERNEL_CODE_SEGMENT_OFFSET 0x08
 
 extern void keyboard_handler(void);
+extern void timer_handler(void);
 
 struct IDT_entry {
     unsigned short int offset_lowerbits;
@@ -24,12 +25,25 @@ void idt_init(void)
     pic_remap_and_mask();
 
     unsigned long keyboard_address;
+    unsigned long timer_address;
     struct idt_ptr {
         unsigned short limit;
         unsigned int base;
     } __attribute__((packed));
 
     struct idt_ptr idtp;
+
+    // Populate the IDT entry of the timer interrupt
+    timer_address = (unsigned long)timer_handler;
+    IDT[0x20].offset_lowerbits =
+        timer_address & 0xffff;
+    IDT[0x20].selector =
+        KERNEL_CODE_SEGMENT_OFFSET;
+    IDT[0x20].zero = 0;
+    IDT[0x20].type_attr =
+        INTERRUPT_GATE;
+    IDT[0x20].offset_higherbits =
+        (timer_address >> 16);
 
     // Populate the IDT entry of keyboard's interrupt
     keyboard_address = (unsigned long)keyboard_handler;

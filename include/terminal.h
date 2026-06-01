@@ -20,6 +20,7 @@ extern int history_index;
 
 void update_cursor(void);
 void render_terminal(void);
+void render_cursor(void);
 void term_put_char(char c);
 void term_backspace(void);
 void term_del(void);
