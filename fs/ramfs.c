@@ -2,8 +2,26 @@
 #include "memory.h"
 #include "string.h"
 #include "terminal.h"
+#include <stddef.h>
 
 static fs_node_t *ramfs_root = 0;
+
+static fs_node_t *alloc_node(void)
+{
+    fs_node_t *n = (fs_node_t*)kmalloc(sizeof(fs_node_t));
+    if (!n) return 0;
+
+    for (int i = 0; i < FS_MAX_NAME; i++) n->name[i] = 0;
+
+    n->type = FS_FILE;
+    n->data = 0;
+    n->permissions = 0xFFFF;
+    n->parent = 0;
+    n->children = 0;
+    n->next = 0;
+
+    return n;
+}
 
 static void copy_name(
     char *dest,
@@ -22,10 +40,13 @@ static void copy_name(
 
 static fs_node_t *copy_node(fs_node_t *node, fs_node_t *new_parent)
 {
-    fs_node_t *copy = (fs_node_t*)kmalloc(sizeof(fs_node_t));
+    fs_node_t *copy = alloc_node();
     if (!copy) return 0;
-
-    *copy = *node;
+    
+    copy_name(copy->name, node->name);
+    copy->type = node->type;
+    copy->permissions = node->permissions;
+    // copy->parent = new_parent;
 
     copy->parent = new_parent;
     copy->next = new_parent->children;
@@ -35,7 +56,10 @@ static fs_node_t *copy_node(fs_node_t *node, fs_node_t *new_parent)
         unsigned int len = node->size;
         copy->data = kmalloc(len + 1);
         if (copy->data) {
-            strcpy(copy->data, node->data);
+            for (unsigned int i = 0; i < len; i++) {
+                copy->data[i] = node->data[i];
+            }
+            copy->data[len] = 0;
         }
     }
 
@@ -43,7 +67,7 @@ static fs_node_t *copy_node(fs_node_t *node, fs_node_t *new_parent)
     copy->children = 0;
 
     while (child) {
-        copy_node(child, copy);
+        fs_node_t *child_copy = copy_node(child, copy);
         child = child->next;
     }
 
@@ -480,15 +504,10 @@ int fs_copy(
         return 0;
     }
 
-    fs_node_t *copy =
-        copy_node(node, parent);
-
-    if (!copy) {
-        return 0;
-    }
+    fs_node_t *copy = copy_node(node, parent);
+    if (!copy) return 0;
 
     copy_name(copy->name, name);
-
     return 1;
 }
 

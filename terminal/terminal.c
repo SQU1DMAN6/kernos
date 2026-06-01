@@ -183,6 +183,7 @@ void term_backspace(void)
 
     input_buffer[input_length] = 0;
 
+    terminal_dirty = 1;
     redraw_input_line();
 }
 
@@ -203,6 +204,7 @@ void term_del(void)
 
     input_buffer[input_length] = 0;
 
+    terminal_dirty = 1;
     redraw_input_line();
 }
 
@@ -343,6 +345,8 @@ void clear_input_line(void) {
 void redraw_input_line(void)
 {
     clear_input_line();
+
+    terminal_dirty = 1;
 
     cursor_x = prompt_x;
     cursor_y = prompt_y;
