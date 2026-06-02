@@ -7,10 +7,15 @@
 
 #define TERM_W 128
 #define TERM_H 80
+#define VISIBLE_ROWS (framebuffer.height / KERNOS_FONT_HEIGHT)
+#define VISIBLE_COLS (framebuffer.width / KERNOS_FONT_WIDTH)
+
 extern char *vidptr;
 extern char term[TERM_H][TERM_W];
 extern unsigned int cursor_x;
 extern unsigned int cursor_y;
+
+extern unsigned int scroll_offset;
 
 extern char input_buffer[INPUT_BUFFER_SIZE];
 extern unsigned int input_length;

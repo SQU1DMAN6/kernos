@@ -110,22 +110,28 @@ void scroll_terminal(void)
         }
     }
 
-    // Clear the final row
+    // Clear the bottom row
     for (unsigned int x = 0; x < TERM_W; x++) {
         term[TERM_H - 1][x] = 0;
     }
 
-    cursor_y = TERM_H - 1;
-
-    update_cursor();
+    // Cursor stays at bottom line
+    cursor_y = VISIBLE_ROWS - 1;
 
     terminal_dirty = 1;
+    update_cursor();
 }
 
 void term_put_char(char c)
 {
-    if (cursor_y >= TERM_H) {
+    if (cursor_x >= TERM_W) {
+        cursor_x = 0;
+        cursor_y++;
+    }
+
+    if (cursor_y >= VISIBLE_ROWS) {
         scroll_terminal();
+        cursor_y = VISIBLE_ROWS - 1;
     }
 
     if (cursor_x >= TERM_W) {
@@ -247,6 +253,7 @@ void kprintln(void)
 
     if (cursor_y >= TERM_H) {
         scroll_terminal();
+        cursor_y = VISIBLE_ROWS - 1;
     }
 
     update_cursor();
