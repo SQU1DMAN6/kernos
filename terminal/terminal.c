@@ -118,6 +118,8 @@ void scroll_terminal(void)
     cursor_y = TERM_H - 1;
 
     update_cursor();
+
+    terminal_dirty = 1;
 }
 
 void term_put_char(char c)
@@ -258,6 +260,8 @@ void kprint(const char *str)
     while (str[i] != '\0') {
         term_put_char(str[i++]);
     }
+
+    terminal_dirty = 1;
 }
 
 void kprint_uint(uint32_t value)
