@@ -238,8 +238,12 @@ void render_cursor(void)
         term[prev_cursor_y][prev_cursor_x]
     );
 
-    if ((timer_ticks % 100) < 50) {
+    if ((timer_ticks % 50) < 25) {
         draw_cursor_fb(cursor_x, cursor_y);
+    }
+
+    if ((timer_ticks % 50) > 25) {
+        terminal_dirty = 1;
     }
 
     prev_cursor_x = cursor_x;
