@@ -69,6 +69,7 @@ static void init_framebuffer(uint32_t mb_info)
 void kmain(uint32_t magic, uint32_t mb_info)
 {
     (void)magic;
+    
     init_framebuffer(mb_info);
 
     clear_screen();

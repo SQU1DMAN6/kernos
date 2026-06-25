@@ -17,9 +17,9 @@ header_start:
     dw 5    ; type = framebuffer request
     dw 0    ; flags
     dd 20   ; size
-    dd 1024 ; width
-    dd 768  ; height
-    dd 32   ; bpp
+    dd 0    ; width
+    dd 0    ; height
+    dd 0    ; bpp
 
     align 8 ; Pad to the next 8-byte boundary
     
