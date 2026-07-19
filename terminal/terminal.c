@@ -16,6 +16,7 @@ unsigned int term_y = 0;
 
 unsigned int cursor_x = 0;
 unsigned int cursor_y = 0;
+unsigned int scroll_offset = 0;
 
 unsigned int prompt_x = 0;
 unsigned int prompt_y = 0;
@@ -90,7 +91,7 @@ static void draw_cursor_fb(int cx, int cy)
 
 void update_cursor(void)
 {
-    unsigned short position = (cursor_y * TERM_W) + cursor_x;
+    unsigned short position = ((cursor_y - scroll_offset) * TERM_W) + cursor_x;
 
     // Send high byte
     write_port(0x3D4, 14);
@@ -115,11 +116,12 @@ void scroll_terminal(void)
         term[TERM_H - 1][x] = 0;
     }
 
-    // Cursor stays at bottom line
-    cursor_y = VISIBLE_ROWS - 1;
+    // Move prompt up with the scroll to keep it visible
+    if (prompt_y > 0) {
+        prompt_y--;
+    }
 
     terminal_dirty = 1;
-    update_cursor();
 }
 
 void term_put_char(char c)
@@ -127,6 +129,19 @@ void term_put_char(char c)
     if (cursor_x >= TERM_W) {
         cursor_x = 0;
         cursor_y++;
+    }
+
+    if (c == '\n') {
+        cursor_x = 0;
+        cursor_y++;
+        
+        if (cursor_y >= VISIBLE_ROWS) {
+            scroll_terminal();
+            cursor_y = VISIBLE_ROWS - 1;
+        }
+
+        update_cursor();
+        return;
     }
 
     if (cursor_y >= VISIBLE_ROWS) {
@@ -137,27 +152,6 @@ void term_put_char(char c)
     if (cursor_x >= TERM_W) {
         cursor_x = 0;
         cursor_y++;
-    }
-
-    if (c == '\n') {
-        cursor_x = 0;
-        cursor_y++;
-        
-        if (cursor_y >= TERM_H) {
-            scroll_terminal();
-        }
-
-        update_cursor();
-        return;
-    }
-
-    if (cursor_x >= TERM_W) {
-        cursor_x = 0;
-        cursor_y++;
-    }
-
-    if (cursor_y >= TERM_H) {
-        scroll_terminal();
     }
 
     if (cursor_y < TERM_H && cursor_x < TERM_W) {
@@ -220,9 +214,15 @@ void render_terminal()
 {
     if (!terminal_dirty) return;
 
-    for (unsigned int y = 0; y < TERM_H; y++) {
+    for (unsigned int fb_y = 0; fb_y < VISIBLE_ROWS; fb_y++) {
+        unsigned int term_y = fb_y + scroll_offset;
+
+        if (term_y >= TERM_H) {
+            continue;
+        }
+
         for (unsigned int x = 0; x < TERM_W; x++) {
-            draw_char_fb(x, y, term[y][x]);
+            draw_char_fb(x, fb_y, term[term_y][x]);
         }
     }
 
@@ -231,19 +231,27 @@ void render_terminal()
 
 void render_cursor(void)
 {
-    // Erase the previous cursor by redrawing that cell
-    draw_char_fb(
-        prev_cursor_x,
-        prev_cursor_y,
-        term[prev_cursor_y][prev_cursor_x]
-    );
+    // Adjust cursor position for scroll offset
+    int fb_cursor_x = cursor_x;
+    int fb_cursor_y = cursor_y - scroll_offset;
 
-    if ((timer_ticks % 50) < 25) {
-        draw_cursor_fb(cursor_x, cursor_y);
-    }
+    if (fb_cursor_y >= 0 && fb_cursor_y < VISIBLE_ROWS) {
+        // Erase the previous cursor by redrawing that cell
+        if (prev_cursor_y >= scroll_offset && prev_cursor_y - scroll_offset < VISIBLE_ROWS) {
+            draw_char_fb(
+                prev_cursor_x,
+                prev_cursor_y - scroll_offset,
+                term[prev_cursor_y][prev_cursor_x]
+            );
+        }
 
-    if ((timer_ticks % 50) > 25) {
-        terminal_dirty = 1;
+        if ((timer_ticks % 50) < 25) {
+            draw_cursor_fb(fb_cursor_x, fb_cursor_y);
+        }
+
+        if ((timer_ticks % 50) > 25) {
+            terminal_dirty = 1;
+        }
     }
 
     prev_cursor_x = cursor_x;
@@ -255,7 +263,7 @@ void kprintln(void)
     cursor_x = 0;
     cursor_y++;
 
-    if (cursor_y >= TERM_H) {
+    if (cursor_y >= VISIBLE_ROWS) {
         scroll_terminal();
         cursor_y = VISIBLE_ROWS - 1;
     }
