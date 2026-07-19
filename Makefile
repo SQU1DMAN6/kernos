@@ -75,7 +75,7 @@ $(BOOT_DIR):
 	mkdir -p $(BOOT_DIR)
 	mkdir -p $(GRUB_DIR)
 
-$(BOOT_DIR)/$(KERNEL).bin: \
+$(BOOT_DIR)/$(KERNEL): \
 	kasm.o \
 	kc.o \
 	drivers/keyboard_map.o \
@@ -112,9 +112,9 @@ $(BOOT_DIR)/$(KERNEL).bin: \
 	mm/heap.o \
 	fs/vfs.o \
 	fs/ramfs.o \
-	-o $(BOOT_DIR)/$(KERNEL).bin
+	-o $(BOOT_DIR)/$(KERNEL)
 
-iso: $(BOOT_DIR)/$(KERNEL).bin
+iso: $(BOOT_DIR)/$(KERNEL)
 	cp grub.cfg $(GRUB_DIR)/grub.cfg
 	$(GRUB_MKRESCUE) -o $(KERNEL).iso $(ISO_DIR)
 

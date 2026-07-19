@@ -101,7 +101,9 @@ void kmain(uint32_t magic, uint32_t mb_info)
     kprint("[  OK  ] Keyboard initialisation successful\n");
 
     kprintln();
-    kprint("         Welcome to Kernos, written by Quan Thai\n\n");
+    kprint("         Welcome to Kernos, written by Quan Thai\n");
+    kprint("         Type `help` for information on available commands\n\n");
+
 
     shell_prompt();
 
