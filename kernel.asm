@@ -16,10 +16,10 @@ header_start:
     ; Framebuffer request tag
     dw 5    ; type = framebuffer request
     dw 0    ; flags
-    dd 20   ; size
-    dd 0    ; width
-    dd 0    ; height
-    dd 0    ; bpp
+    ; dd 20   ; size
+    ; dd 0    ; width
+    ; dd 0    ; height
+    ; dd 0    ; bpp
 
     align 8 ; Pad to the next 8-byte boundary
     
@@ -87,17 +87,16 @@ global timer_handler
 timer_handler:
     pusha
 
-    cli
-
     call timer_handler_main
+
+    mov al, 0x20
+    out 0x20, al
 
     popa
     iretd
 
 keyboard_handler:
     pusha
-
-    cli
 
     call keyboard_handler_main
 

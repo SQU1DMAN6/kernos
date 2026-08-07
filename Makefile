@@ -120,7 +120,12 @@ iso: $(BOOT_DIR)/$(KERNEL)
 
 run: iso
 	qemu-system-x86_64 \
+	-cpu max \
+	-m 16M \
+	-accel tcg \
+	-machine q35 \
 	-cdrom $(KERNEL).iso \
+	-d int,cpu_reset,guest_errors \
 	-display sdl \
 	-serial stdio
 
