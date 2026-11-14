@@ -72,7 +72,8 @@ void kmain(uint32_t magic, uint32_t mb_info)
     
     init_framebuffer(mb_info);
 
-    clear_screen();
+    // TEMP: disable screen clearing for bare-metal compat
+    // clear_screen();
 
     kprint("Booting Kernos...\n");
 
