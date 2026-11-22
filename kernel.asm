@@ -22,7 +22,7 @@ header_start:
     dd 32   ; bpp
 
     align 8 ; Pad to the next 8-byte boundary
-    
+
     ; End tag
     dw 0
     dw 0
@@ -37,9 +37,12 @@ global read_port
 global write_port
 global load_idt
 
-extern kmain ; kmain is defined in the C file
+extern kmain
 extern keyboard_handler_main
 extern timer_handler_main
+extern serial_init
+extern serial_write_char
+; All this external stuff is done in the C files somewhere
 
 gdt_start:
     dq 0
@@ -107,7 +110,17 @@ keyboard_handler:
     iretd
 
 _start:
-    cli ; block interrupts
+    cli
+
+    ; Preserve the Multiboot2 handover registers IMMEDIATELY.
+    ; EAX = Multiboot2 magic
+    ; EBX = Multiboot2 information structure pointer
+    ;
+    ; Do this before touching AX or making any function calls.
+    mov esi, eax
+    mov edi, ebx
+
+    ; Load our GDT and reload segment registers.
     lgdt [gdt_descriptor]
     jmp CODE_SEG:.reload_segments
 
@@ -120,14 +133,37 @@ _start:
     mov ss, ax
     cld
 
-    mov esp, stack_space ; Set the stack pointer
+    ; Establish the kernel stack.
+    mov esp, stack_space
     and esp, 0xFFFFFFF0
 
-    push ebx
-    push eax
+    ; Initialise COM1 serial diagnostics.
+    call serial_init
+
+    ; Marker S: stack established.
+    sub esp, 12
+    push dword 'S'
+    call serial_write_char
+    add esp, 16
+
+    ; Marker K: about to enter kmain.
+    sub esp, 12
+    push dword 'K'
+    call serial_write_char
+    add esp, 16
+
+    ; Preserve 16-byte alignment before kmain().
+    sub esp, 8
+
+    ; Restore original Multiboot2 arguments.
+    ; Push second argument first, then first argument.
+    push edi
+    push esi
+
     call kmain
 
 halt:
+    cli
     hlt
     jmp halt
 

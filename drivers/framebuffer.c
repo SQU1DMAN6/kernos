@@ -5,7 +5,7 @@
 
 framebuffer_t framebuffer = {0};
 
-void framebuffer_init(
+void framebuffer_init (
     uint32_t *address,
     uint32_t width,
     uint32_t height,
@@ -20,16 +20,20 @@ void framebuffer_init(
     framebuffer.bpp = bpp;
 }
 
-void put_pixel(uint32_t x, uint32_t y, uint32_t colour)
+void put_pixel (
+    uint32_t x, uint32_t y, uint32_t colour
+)
 {
-    if (!framebuffer.address || framebuffer.width == 0 || framebuffer.height == 0)
+    if (!framebuffer.address || framebuffer.width == 0 ||
+        framebuffer.height == 0)
         return;
 
     if (x >= framebuffer.width || y >= framebuffer.height)
         return;
 
     uint8_t *base = (uint8_t *)framebuffer.address;
-    uint8_t *pixel = base + (y * framebuffer.pitch) + (x * (framebuffer.bpp / 8));
+    uint8_t *pixel = base + (y * framebuffer.pitch) +
+                     (x * (framebuffer.bpp / 8));
 
     *(uint32_t *)pixel = colour;
 }

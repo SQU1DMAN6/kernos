@@ -1,17 +1,21 @@
-#include "vfs.h"
 #include "memory.h"
 #include "string.h"
 #include "terminal.h"
+#include "vfs.h"
 #include <stddef.h>
 
 static fs_node_t *ramfs_root = 0;
 
-static fs_node_t *alloc_node(void)
+static fs_node_t *alloc_node (
+    void
+)
 {
-    fs_node_t *n = (fs_node_t*)kmalloc(sizeof(fs_node_t));
-    if (!n) return 0;
+    fs_node_t *n = (fs_node_t *)kmalloc(sizeof(fs_node_t));
+    if (!n)
+        return 0;
 
-    for (int i = 0; i < FS_MAX_NAME; i++) n->name[i] = 0;
+    for (int i = 0; i < FS_MAX_NAME; i++)
+        n->name[i] = 0;
 
     n->type = FS_FILE;
     n->data = 0;
@@ -23,14 +27,14 @@ static fs_node_t *alloc_node(void)
     return n;
 }
 
-static void copy_name(
-    char *dest,
-    const char *src
+static void copy_name (
+    char *dest, const char *src
 )
 {
     unsigned int i = 0;
 
-    while (src[i]) {
+    while (src[i])
+    {
         dest[i] = src[i];
         i++;
     }
@@ -38,27 +42,33 @@ static void copy_name(
     dest[i] = 0;
 }
 
-static fs_node_t *copy_node(fs_node_t *node, fs_node_t *new_parent)
+static fs_node_t *copy_node (
+    fs_node_t *node, fs_node_t *new_parent
+)
 {
     fs_node_t *copy = alloc_node();
-    if (!copy) return 0;
-    
+    if (!copy)
+        return 0;
+
     copy_name(copy->name, node->name);
     copy->type = node->type;
     copy->permissions = node->permissions;
     copy->parent = new_parent;
-    
+
     copy->next = new_parent->children;
     new_parent->children = copy;
 
-    if (node->type == FS_FILE && node->data) {
+    if (node->type == FS_FILE && node->data)
+    {
         unsigned int len = node->size;
 
         copy->size = len;
 
         copy->data = kmalloc(len + 1);
-        if (copy->data) {
-            for (unsigned int i = 0; i < len; i++) {
+        if (copy->data)
+        {
+            for (unsigned int i = 0; i < len; i++)
+            {
                 copy->data[i] = node->data[i];
             }
             copy->data[len] = 0;
@@ -68,7 +78,8 @@ static fs_node_t *copy_node(fs_node_t *node, fs_node_t *new_parent)
     fs_node_t *child = node->children;
     copy->children = 0;
 
-    while (child) {
+    while (child)
+    {
         copy_node(child, copy);
         child = child->next;
     }
@@ -76,38 +87,39 @@ static fs_node_t *copy_node(fs_node_t *node, fs_node_t *new_parent)
     return copy;
 }
 
-static int name_equals(
-    const char *a,
-    const char *b
+static int name_equals (
+    const char *a, const char *b
 )
 {
     return strcmp(a, b);
 }
 
-static int path_is_ramfs(const char *path)
+static int path_is_ramfs (
+    const char *path
+)
 {
-    return
-        path[0] == 'R' &&
-        path[1] == 'A' &&
-        path[2] == 'M' &&
-        path[3] == ':' &&
-        path[4] == '/';
+    return path[0] == 'R' && path[1] == 'A' &&
+           path[2] == 'M' && path[3] == ':' &&
+           path[4] == '/';
 }
 
-static char *strip_mount(const char *path)
+static char *strip_mount (
+    const char *path
+)
 {
     return path + 5;
 }
 
-static fs_node_t *find_child(
-    fs_node_t *parent,
-    const char *name
+static fs_node_t *find_child (
+    fs_node_t *parent, const char *name
 )
 {
     fs_node_t *current = parent->children;
 
-    while (current) {
-        if (name_equals(current->name, name)) {
+    while (current)
+    {
+        if (name_equals(current->name, name))
+        {
             return current;
         }
 
@@ -117,19 +129,23 @@ static fs_node_t *find_child(
     return 0;
 }
 
-static int unlink_child(
-    fs_node_t *parent,
-    fs_node_t *target
+static int unlink_child (
+    fs_node_t *parent, fs_node_t *target
 )
 {
     fs_node_t *current = parent->children;
     fs_node_t *prev = 0;
 
-    while (current) {
-        if (current == target) {
-            if (prev) {
+    while (current)
+    {
+        if (current == target)
+        {
+            if (prev)
+            {
                 prev->next = current->next;
-            } else {
+            }
+            else
+            {
                 parent->children = current->next;
             }
             return 1;
@@ -142,17 +158,19 @@ static int unlink_child(
     return 0;
 }
 
-static fs_node_t *resolve_path(
+static fs_node_t *resolve_path (
     const char *path
 )
 {
-    if (!path_is_ramfs(path)) {
+    if (!path_is_ramfs(path))
+    {
         return 0;
     }
 
     const char *subpath = strip_mount(path);
 
-    if (!subpath[0]) {
+    if (!subpath[0])
+    {
         return ramfs_root;
     }
 
@@ -163,26 +181,30 @@ static fs_node_t *resolve_path(
 
     unsigned int i = 0;
 
-    while (1) {
+    while (1)
+    {
         char c = subpath[i];
 
-        if (c == '/' || c == 0) {
+        if (c == '/' || c == 0)
+        {
             segment[seg_i] = 0;
 
-            current =
-                find_child(current, segment);
+            current = find_child(current, segment);
 
-            if (!current) {
+            if (!current)
+            {
                 return 0;
             }
 
             seg_i = 0;
 
-            if (c == 0) {
+            if (c == 0)
+            {
                 return current;
             }
         }
-        else {
+        else
+        {
             segment[seg_i++] = c;
         }
 
@@ -190,64 +212,60 @@ static fs_node_t *resolve_path(
     }
 }
 
-static int split_parent_path(
-    const char *path,
-    char *parent_out,
-    char *name_out
+static int split_parent_path (
+    const char *path, char *parent_out, char *name_out
 )
 {
     unsigned int len = 0;
 
-    while (path[len]) {
+    while (path[len])
+    {
         len++;
     }
 
-    if (len <= 5) {
+    if (len <= 5)
+    {
         return 0;
     }
 
     int last_slash = -1;
 
-    for (unsigned int i = 5; path[i]; i++) {
-        if (path[i] == '/') {
+    for (unsigned int i = 5; path[i]; i++)
+    {
+        if (path[i] == '/')
+        {
             last_slash = i;
         }
     }
 
-    if (last_slash == -1) {
-        copy_name(
-            parent_out,
-            "RAM:/"
-        );
+    if (last_slash == -1)
+    {
+        copy_name(parent_out, "RAM:/");
 
-        copy_name(
-            name_out,
-            strip_mount(path)
-        );
+        copy_name(name_out, strip_mount(path));
 
         return 1;
     }
 
     unsigned int i;
 
-    for (i = 0; i < (unsigned int)last_slash; i++) {
+    for (i = 0; i < (unsigned int)last_slash; i++)
+    {
         parent_out[i] = path[i];
     }
 
     parent_out[i] = 0;
 
-    copy_name(
-        name_out,
-        path + last_slash + 1
-    );
+    copy_name(name_out, path + last_slash + 1);
 
     return 1;
 }
 
-void fs_init(void)
+void fs_init (
+    void
+)
 {
-    ramfs_root =
-        (fs_node_t*)kmalloc(sizeof(fs_node_t));
+    ramfs_root = (fs_node_t *)kmalloc(sizeof(fs_node_t));
 
     ramfs_root->name[0] = 0;
 
@@ -263,36 +281,35 @@ void fs_init(void)
     ramfs_root->next = 0;
 }
 
-int fs_create(const char *path)
+int fs_create (
+    const char *path
+)
 {
     char parent_path[FS_MAX_PATH];
     char name[FS_MAX_NAME];
 
-    if (!split_parent_path(
-        path,
-        parent_path,
-        name
-    )) {
-        return 0;
-    }
-
-    fs_node_t *parent =
-        resolve_path(parent_path);
-
-    if (!parent ||
-        parent->type != FS_DIRECTORY)
+    if (!split_parent_path(path, parent_path, name))
     {
         return 0;
     }
 
-    if (find_child(parent, name)) {
+    fs_node_t *parent = resolve_path(parent_path);
+
+    if (!parent || parent->type != FS_DIRECTORY)
+    {
+        return 0;
+    }
+
+    if (find_child(parent, name))
+    {
         return 0;
     }
 
     fs_node_t *node =
-        (fs_node_t*)kmalloc(sizeof(fs_node_t));
+        (fs_node_t *)kmalloc(sizeof(fs_node_t));
 
-    if (!node) {
+    if (!node)
+    {
         return 0;
     }
 
@@ -314,34 +331,35 @@ int fs_create(const char *path)
     return 1;
 }
 
-int fs_mkdir(const char *path)
+int fs_mkdir (
+    const char *path
+)
 {
     char parent_path[FS_MAX_PATH];
-    char name [FS_MAX_NAME];
+    char name[FS_MAX_NAME];
 
-    if (!split_parent_path(
-        path,
-        parent_path,
-        name
-    )) {
+    if (!split_parent_path(path, parent_path, name))
+    {
         return 0;
     }
 
-    fs_node_t *parent =
-        resolve_path(parent_path);
+    fs_node_t *parent = resolve_path(parent_path);
 
-    if (!parent) {
+    if (!parent)
+    {
         return 0;
     }
 
-    if (find_child(parent, name)) {
+    if (find_child(parent, name))
+    {
         return 0;
     }
 
     fs_node_t *node =
-        (fs_node_t*)kmalloc(sizeof(fs_node_t));
+        (fs_node_t *)kmalloc(sizeof(fs_node_t));
 
-    if (!node) {
+    if (!node)
+    {
         return 0;
     }
 
@@ -363,39 +381,43 @@ int fs_mkdir(const char *path)
     return 1;
 }
 
-int fs_write(
-    const char *path,
-    const char *data
+int fs_write (
+    const char *path, const char *data
 )
 {
-    if (!path_is_ramfs(path)) {
+    if (!path_is_ramfs(path))
+    {
         return 0;
     }
 
-    fs_node_t *node =
-        resolve_path(path);
+    fs_node_t *node = resolve_path(path);
 
-    if (!node) {
+    if (!node)
+    {
         return 0;
     }
 
     unsigned int len = 0;
 
-    while (data[len]) {
+    while (data[len])
+    {
         len++;
     }
 
-    if (node->data) {
+    if (node->data)
+    {
         kfree(node->data);
     }
 
-    node->data = (char*)kmalloc(len + 1);
+    node->data = (char *)kmalloc(len + 1);
 
-    if (!node->data) {
+    if (!node->data)
+    {
         return 0;
     }
 
-    for (unsigned int i = 0; i < len; i++) {
+    for (unsigned int i = 0; i < len; i++)
+    {
         node->data[i] = data[i];
     }
 
@@ -406,48 +428,60 @@ int fs_write(
     return 1;
 }
 
-char *fs_read(const char *path)
+char *fs_read (
+    const char *path
+)
 {
-    if (!path_is_ramfs(path)) {
+    if (!path_is_ramfs(path))
+    {
         return 0;
     }
 
-    fs_node_t *node =
-        resolve_path(path);
+    fs_node_t *node = resolve_path(path);
 
-    if (!node) {
+    if (!node)
+    {
         return 0;
     }
 
     return node->data;
 }
 
-static void fs_remove_recursive(fs_node_t *node)
+static void fs_remove_recursive (
+    fs_node_t *node
+)
 {
-    if (!node) return;
+    if (!node)
+        return;
 
     fs_node_t *child = node->children;
-    while (child) {
+    while (child)
+    {
         fs_node_t *next = child->next;
         fs_remove_recursive(child);
         child = next;
     }
 
-    if (node->data) {
+    if (node->data)
+    {
         kfree(node->data);
     }
 
     kfree(node);
 }
 
-int fs_remove(const char *path)
+int fs_remove (
+    const char *path
+)
 {
     fs_node_t *node = resolve_path(path);
-    if (!node || !node->parent) {
+    if (!node || !node->parent)
+    {
         return 0;
     }
 
-    if (!unlink_child(node->parent, node)) {
+    if (!unlink_child(node->parent, node))
+    {
         return 0;
     }
 
@@ -456,34 +490,42 @@ int fs_remove(const char *path)
     return 1;
 }
 
-int fs_rename(const char *path, const char *new_name)
+int fs_rename (
+    const char *path, const char *new_name
+)
 {
     fs_node_t *node = resolve_path(path);
-    if (!node) return 0;
+    if (!node)
+        return 0;
 
     copy_name(node->name, new_name);
     return 1;
 }
 
-int fs_move(const char *src, const char *dst)
+int fs_move (
+    const char *src, const char *dst
+)
 {
     fs_node_t *node = resolve_path(src);
-    if (!node || !node->parent) return 0;
+    if (!node || !node->parent)
+        return 0;
 
     char parent_path[FS_MAX_PATH];
     char name[FS_MAX_NAME];
 
-    if (!split_parent_path(dst, parent_path, name)) {
+    if (!split_parent_path(dst, parent_path, name))
+    {
         return 0;
     }
 
     fs_node_t *new_parent = resolve_path(parent_path);
-    if (!new_parent) return 0;
+    if (!new_parent)
+        return 0;
 
-    fs_node_t *existing =
-        find_child(new_parent, name);
+    fs_node_t *existing = find_child(new_parent, name);
 
-    if (existing && existing != node) {
+    if (existing && existing != node)
+    {
         return 0;
     }
 
@@ -498,73 +540,71 @@ int fs_move(const char *src, const char *dst)
     return 1;
 }
 
-int fs_copy(
-    const char *src,
-    const char *dst
+int fs_copy (
+    const char *src, const char *dst
 )
 {
-    fs_node_t *node =
-        resolve_path(src);
+    fs_node_t *node = resolve_path(src);
 
-    if (!node) {
+    if (!node)
+    {
         return 0;
     }
 
-    if (strcmp(src, dst)) {
+    if (strcmp(src, dst))
+    {
         return 0;
     }
 
     char parent_path[FS_MAX_PATH];
     char name[FS_MAX_NAME];
 
-    if (!split_parent_path(
-        dst,
-        parent_path,
-        name
-    )) {
+    if (!split_parent_path(dst, parent_path, name))
+    {
         return 0;
     }
 
-    fs_node_t *parent =
-        resolve_path(parent_path);
+    fs_node_t *parent = resolve_path(parent_path);
 
-    if (!parent) {
+    if (!parent)
+    {
         return 0;
     }
 
-    fs_node_t *existing =
-        find_child(parent, name);
+    fs_node_t *existing = find_child(parent, name);
 
-    if (existing) {
-        if (existing->type != FS_FILE) {
+    if (existing)
+    {
+        if (existing->type != FS_FILE)
+        {
             return 0;
         }
 
-        if (node->type != FS_FILE) {
+        if (node->type != FS_FILE)
+        {
             return 0;
         }
 
-        if (existing->data) {
+        if (existing->data)
+        {
             kfree(existing->data);
             existing->data = 0;
         }
 
         existing->size = node->size;
 
-        if (node->data) {
-            existing->data =
-                kmalloc(node->size + 1);
+        if (node->data)
+        {
+            existing->data = kmalloc(node->size + 1);
 
-            if (!existing->data) {
+            if (!existing->data)
+            {
                 return 0;
             }
 
-            for (unsigned int i = 0;
-                i < node->size;
-                i++)
+            for (unsigned int i = 0; i < node->size; i++)
             {
-                existing->data[i] =
-                    node->data[i];
+                existing->data[i] = node->data[i];
             }
 
             existing->data[node->size] = 0;
@@ -573,10 +613,10 @@ int fs_copy(
         return 1;
     }
 
-    fs_node_t *copy =
-        copy_node(node, parent);
+    fs_node_t *copy = copy_node(node, parent);
 
-    if (!copy) {
+    if (!copy)
+    {
         return 0;
     }
 
@@ -585,23 +625,28 @@ int fs_copy(
     return 1;
 }
 
-void fs_list_path(const char *path)
+void fs_list_path (
+    const char *path
+)
 {
-    fs_node_t *dir =
-        resolve_path(path);
+    fs_node_t *dir = resolve_path(path);
 
-    if (!dir) {
+    if (!dir)
+    {
         kprint("Directory not found\n");
         return;
     }
 
-    fs_node_t *current =
-        dir->children;
+    fs_node_t *current = dir->children;
 
-    while (current) {
-        if (current->type == FS_DIRECTORY) {
+    while (current)
+    {
+        if (current->type == FS_DIRECTORY)
+        {
             kprint("[D] ");
-        } else {
+        }
+        else
+        {
             kprint("[*] ");
         }
 
@@ -612,7 +657,9 @@ void fs_list_path(const char *path)
     }
 }
 
-void fs_list(void)
+void fs_list (
+    void
+)
 {
     fs_list_path("RAM:/");
 }

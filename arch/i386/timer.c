@@ -3,14 +3,18 @@
 
 volatile unsigned int timer_ticks = 0;
 
-void timer_handler_main(void)
+void timer_handler_main (
+    void
+)
 {
     timer_ticks++;
 
     write_port(0x20, 0x20);
 }
 
-void timer_init(void)
+void timer_init (
+    void
+)
 {
     unsigned int divisor = 1193180 / 100;
 

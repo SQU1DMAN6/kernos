@@ -17,7 +17,7 @@ kasm.o: kernel.asm
 	nasm -f elf32 kernel.asm -o kasm.o
 
 
-kc.o: kernel.c include/keyboard_map.h include/terminal.h include/idt.h include/pic.h
+kc.o: kernel.c include/keyboard_map.h include/terminal.h include/idt.h include/pic.h include/serial.h
 	gcc -Iinclude -m32 -ffreestanding -fno-pie -fno-stack-protector -nostdlib -c kernel.c -o kc.o
 
 drivers/keyboard_map.o: drivers/keyboard_map.c include/keyboard_map.h
@@ -54,6 +54,9 @@ arch/i386/timer.o: arch/i386/timer.c include/timer.h include/io.h
 	-fno-stack-protector -nostdlib \
 	-c arch/i386/timer.c -o arch/i386/timer.o
 
+arch/i386/serial.o: arch/i386/serial.c include/serial.h
+	gcc $(CFLAGS) -c arch/i386/serial.c -o arch/i386/serial.o
+
 lib/string.o: lib/string.c include/string.h
 	gcc -Iinclude -m32 -ffreestanding -fno-pie -fno-stack-protector -nostdlib -c lib/string.c -o lib/string.o
 
@@ -89,6 +92,7 @@ $(BOOT_DIR)/$(KERNEL): \
 	arch/i386/keyboard.o \
 	arch/i386/power.o \
 	arch/i386/timer.o \
+	arch/i386/serial.o \
 	mm/heap.o \
 	fs/vfs.o \
 	fs/ramfs.o \
@@ -109,6 +113,7 @@ $(BOOT_DIR)/$(KERNEL): \
 	arch/i386/keyboard.o \
 	arch/i386/power.o \
 	arch/i386/timer.o \
+	arch/i386/serial.o \
 	mm/heap.o \
 	fs/vfs.o \
 	fs/ramfs.o \
@@ -123,9 +128,8 @@ run: iso
 	-cpu max \
 	-m 16M \
 	-accel tcg \
-	-machine q35 \
+	-machine pc \
 	-cdrom $(KERNEL).iso \
-	-d int,cpu_reset,guest_errors \
 	-display sdl \
 	-serial stdio
 

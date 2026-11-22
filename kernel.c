@@ -1,19 +1,25 @@
-#include "terminal.h"
-#include "idt.h"
-#include "pic.h"
-#include "memory.h"
-#include "vfs.h"
 #include "framebuffer.h"
+#include "idt.h"
+#include "include/serial.h"
+#include "memory.h"
+#include "pic.h"
+#include "serial.h"
+#include "terminal.h"
 #include "timer.h"
-#include <stdint.h>
+#include "vfs.h"
 #include <stddef.h>
+#include <stdint.h>
 
-struct mb_tag {
+#define MULTIBOOT2_BOOTLOADER_MAGIC 0x36D76289
+
+struct mb_tag
+{
     uint32_t type;
     uint32_t size;
 };
 
-struct mb_framebuffer_tag {
+struct mb_framebuffer_tag
+{
     uint32_t type;
     uint32_t size;
     uint64_t framebuffer_addr;
@@ -25,92 +31,330 @@ struct mb_framebuffer_tag {
     uint16_t reserved;
 } __attribute__((packed));
 
-extern void keyboard_handler(void);
+extern void keyboard_handler (void);
 
-static void init_framebuffer(uint32_t mb_info)
+static int init_framebuffer (
+    uint32_t mb_info
+)
 {
-    uint8_t *ptr = (uint8_t *)mb_info;
+    uint8_t *ptr = (uint8_t *)(uintptr_t)mb_info;
+
+    serial_write_string(
+        "[ BOOT ] Multiboot information at "
+    );
+    serial_write_hex32(mb_info);
+    serial_write_char('\n');
+
+    if (mb_info == 0)
+    {
+        serial_write_string(
+            "[ERROR] Null Multiboot information pointer\n"
+        );
+        return 0;
+    }
 
     uint32_t total_size = *(uint32_t *)ptr;
+
+    if (total_size < 16)
+    {
+        serial_write_string(
+            "[ERROR] Invalic multiboot information size\n"
+        );
+        return 0;
+    }
+
+    if (mb_info > UINT32_MAX - total_size)
+    {
+        serial_write_string("[ERROR] Multiboot information "
+                            "address overflow\n");
+        return 0;
+    }
+
+    uint8_t *end = ptr + total_size;
     ptr += 8;
 
-    uint8_t *end = (uint8_t *)mb_info + total_size;
+    serial_write_string(
+        "[ BOOT ] Multiboot information size: "
+    );
+    serial_write_hex32(total_size);
+    serial_write_char('\n');
 
-    while (ptr < end) {
+    while (ptr <= end - 8)
+    {
         struct mb_tag *tag = (struct mb_tag *)ptr;
 
-        if (tag->type == 0)
-            break;
-
-        if (tag->type == 8) {
-            uint8_t *t = (uint8_t *)tag;
-
-            uint64_t addr = *(uint64_t *)(t + 8);
-            uint32_t pitch = *(uint32_t *)(t + 16);
-            uint32_t width = *(uint32_t *)(t + 20);
-            uint32_t height = *(uint32_t *)(t + 24);
-            uint8_t bpp = *(uint8_t *)(t + 28);
-
-            framebuffer_init(
-                (uint32_t *)(uintptr_t)addr,
-                width,
-                height,
-                pitch,
-                bpp
+        if (tag->size < 8 ||
+            tag->size > (uint32_t)(end - ptr))
+        {
+            serial_write_string(
+                "[ERROR] Invalid Multiboot tag size\n"
             );
-
-            return;
+            return 0;
         }
 
-        ptr += (tag->size + 7) & ~7;
+        if (tag->type == 0)
+        {
+            break;
+        }
+
+        if (tag->type == 8)
+        {
+            if (tag->size <
+                sizeof(struct mb_framebuffer_tag))
+            {
+                serial_write_string(
+                    "[ERROR] Framebuffer tag too small\n"
+                );
+                return 0;
+            }
+
+            struct mb_framebuffer_tag *fb =
+                (struct mb_framebuffer_tag *)tag;
+
+            serial_write_string(
+                "[ BOOT ] Framebuffer address: "
+            );
+            serial_write_hex64(fb->framebuffer_addr);
+            serial_write_char('\n');
+
+            serial_write_string(
+                "[ BOOT ] Framebuffer width: "
+            );
+            serial_write_hex32(fb->framebuffer_width);
+            serial_write_char('\n');
+
+            serial_write_string(
+                "[ BOOT ] Framebuffer height: "
+            );
+            serial_write_hex32(fb->framebuffer_height);
+            serial_write_char('\n');
+
+            serial_write_string(
+                "[ BOOT ] Framebuffer pitch: "
+            );
+            serial_write_hex32(fb->framebuffer_pitch);
+            serial_write_char('\n');
+
+            serial_write_string(
+                "[ BOOT ] Framebuffer BPP: "
+            );
+            serial_write_hex32(fb->framebuffer_bpp);
+            serial_write_char('\n');
+
+            serial_write_string(
+                "[ BOOT ] Framebuffer type: "
+            );
+            serial_write_hex32(fb->framebuffer_type);
+            serial_write_char('\n');
+
+            if (fb->framebuffer_addr == 0 ||
+                fb->framebuffer_addr > UINT32_MAX)
+            {
+                serial_write_string(
+                    "[ERROR] Framebuffer address is "
+                    "outside the 32-bit address space\n"
+                );
+                return 0;
+            }
+
+            if (fb->framebuffer_width == 0 ||
+                fb->framebuffer_height == 0)
+            {
+                serial_write_string(
+                    "[ERROR] Invalud framebuffer "
+                    "dimensions\n"
+                );
+                return 0;
+            }
+
+            if (fb->framebuffer_bpp != 32)
+            {
+                serial_write_string(
+                    "[ERROR] Unsupported framebuffer "
+                    "colour depth\n"
+                );
+                return 0;
+            }
+
+            if (fb->framebuffer_type != 1)
+            {
+                serial_write_string("[ERROR] Framebuffer "
+                                    "is not direct RGB\n");
+                return 0;
+            }
+
+            if (fb->framebuffer_width > UINT32_MAX / 4)
+            {
+                serial_write_string(
+                    "[ERROR] Framebuffer width overflow\n"
+                );
+                return 0;
+            }
+
+            if (fb->framebuffer_pitch <
+                fb->framebuffer_width * 4)
+            {
+                serial_write_string("[ERROR] Framebuffer "
+                                    "pitch is too small\n");
+                return 0;
+            }
+
+            framebuffer_init(
+                (uint32_t *)(uintptr_t)fb->framebuffer_addr,
+                fb->framebuffer_width,
+                fb->framebuffer_height,
+                fb->framebuffer_pitch,
+                fb->framebuffer_bpp
+            );
+
+            serial_write_string(
+                "[ BOOT ] Framebuffer initialisation "
+                "successful\n"
+            );
+            return 1;
+        }
+
+        uint32_t next_tag = (tag->size + 7) & ~7U;
+
+        if (next_tag < tag->size ||
+            next_tag > (uint32_t)(end - ptr))
+        {
+            serial_write_string(
+                "[ERROR] Multiboot tag alignment overflow\n"
+            );
+            return 0;
+        }
+
+        ptr += next_tag;
+    }
+
+    serial_write_string(
+        "[ERROR] No framebuffer tag found\n"
+    );
+    return 0;
+}
+
+static void debug_halt (
+    const char *message
+)
+{
+    serial_write_string("[ FATAL ]  ");
+    serial_write_string(message);
+    serial_write_char('\n');
+
+    __asm__ __volatile__("cli");
+
+    while (1)
+    {
+        __asm__ __volatile__("hlt");
     }
 }
 
-void kmain(uint32_t magic, uint32_t mb_info)
+void kmain (
+    uint32_t magic, uint32_t mb_info
+)
 {
-    (void)magic;
-    
-    init_framebuffer(mb_info);
+    serial_write_string("[ BOOT ] Enterered kmain()\n");
 
-    // TEMP: disable screen clearing for bare-metal compat
-    // clear_screen();
+    // Validate the Multiboot2 handover
+    serial_write_string("[ BOOT ] Bootloader magic: ");
+    serial_write_hex32(magic);
+    serial_write_char('\n');
+
+    if (magic != MULTIBOOT2_BOOTLOADER_MAGIC)
+    {
+        debug_halt("Invalid Multiboot2 bootloader magic");
+    }
+
+    // Initialise the framebuffer before using the terminal
+    if (!init_framebuffer(mb_info))
+    {
+        debug_halt("Framebuffer initialisation failed");
+    }
+
+    // Test the first terminal output separately.
+    serial_write_string(
+        "[ TEST ] About to call first kprint()\n"
+    );
 
     kprint("Booting Kernos...\n");
 
-    heap_init();
+    serial_write_string(
+        "[ TEST ] First kprint() returned!\n"
+    );
 
+    serial_write_string(
+        "[ BOOT ] Starting heap initialisation\n"
+    );
+    heap_init();
+    serial_write_string(
+        "[ BOOT ] Heap initialisation successful\n"
+    );
     kprint("[  OK  ] Heap initialisation successful\n");
 
+    serial_write_string(
+        "[ BOOT ] Starting filesystem initialisation\n"
+    );
     fs_init();
+    serial_write_string(
+        "[ BOOT ] Filesystem init returned\n"
+    );
+    kprint(
+        "[  OK  ] File system initialisation successful\n"
+    );
 
-    kprint("[  OK  ] File system initialisation successful\n");
-
+    serial_write_string(
+        "[ BOOT ] Starting IDT initialisation\n"
+    );
     idt_init();
-
+    serial_write_string(
+        "[ BOOT ] IDT initialisation returned\n"
+    );
     kprint("[  OK  ] IDT initialisation successful\n");
 
+    serial_write_string(
+        "[ BOOT ] Starting timer initialisation\n"
+    );
     timer_init();
-
+    serial_write_string(
+        "[ BOOT ] Timer initialisation returned\n"
+    );
     kprint("[  OK  ] Timer initialisation successful\n");
 
+    serial_write_string("[ BOOT ] Enabling interrupts\n");
     __asm__ __volatile__("sti");
-
     kprint("[  OK  ] System is stable\n");
 
+    serial_write_string(
+        "[ BOOT ] Starting keyboard initialisation\n"
+    );
     kb_init();
-
+    serial_write_string(
+        "[ BOOT ] Keyboard initialisation returned\n"
+    );
     kprint("[  OK  ] Keyboard initialisation successful\n");
 
     kprintln();
-    kprint("         Welcome to Kernos, written by Quan Thai\n");
-    kprint("         Type `help` for information on available commands\n\n");
 
+    kprint(
+        "        Welcome to Kernos, written by Quan Thai\n"
+    );
+    kprint("        Type 'help' for information on "
+           "available commands\n\n");
 
+    serial_write_string("[ BOOT ] Starting shell prompt\n");
     shell_prompt();
+    serial_write_string("[ BOOT ] Shell prompt returned\n");
 
-    while (1) {
+    serial_write_string(
+        "[ BOOT ] Entering terminal loop\n"
+    );
+
+    while (1)
+    {
         render_terminal();
         render_cursor();
-        __asm__("hlt");
+
+        __asm__ __volatile__("hlt");
     }
 }

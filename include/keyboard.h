@@ -25,6 +25,6 @@
 #define END_KEY_PRESS 0x4F
 #define DEL_KEY_PRESS 0x53
 
-void keyboard_handler_main(void);
+void keyboard_handler_main (void);
 
 #endif /* KEYBOARD_H */

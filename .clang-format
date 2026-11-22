@@ -1,0 +1,33 @@
+---
+BasedOnStyle: LLVM
+IndentWidth: 4
+UseTab: Never
+ColumnLimit: 60
+PointerAlignment: Right
+BreakBeforeBraces: Allman
+AllowShortBlocksOnASingleLine: Never
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+SpaceBeforeParens: Custom
+SpaceBeforeParensOptions:
+    AfterControlStatements: true
+    AfterForeachMacros: true
+    AfterFunctionDeclarationName: true
+    AfterFunctionDefinitionName: true
+    AfterIfMacros: true
+    AfterOverloadedOperator: true
+    AfterRequiresInClause: true
+    AfterRequiresInExpression: true
+    BeforeNonEmptyParentheses: false
+BinPackParameters: false
+BinPackArguments: false
+ContinuationIndentWidth: 4
+BreakFunctionDefinitionParameters: true
+BreakBeforeBinaryOperators: None
+Cpp11BracedListStyle: true
+BreakBeforeCloseBracketIf: true
+BreakBeforeCloseBracketFunction: true
+BreakBeforeCloseBracketLoop: true
+BreakBeforeCloseBracketSwitch: true
+---

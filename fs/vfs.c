@@ -1,3 +1,3 @@
 #include "vfs.h"
 
-void fs_init(void);
+void fs_init (void);

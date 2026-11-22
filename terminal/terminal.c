@@ -1,14 +1,14 @@
 #include "terminal.h"
+#include "framebuffer.h"
+#include "kernos8x16.h"
 #include "keyboard_map.h"
 #include "shell.h"
 #include "string.h"
-#include "framebuffer.h"
 #include "timer.h"
-#include "kernos8x16.h"
 #include <stddef.h>
 #include <stdint.h>
 
-char *vidptr = (char*)0xb8000;
+char *vidptr = (char *)0xb8000;
 
 char term[TERM_H][TERM_W];
 unsigned int term_x = 0;
@@ -43,15 +43,20 @@ static int terminal_dirty = 1;
 static int prev_cursor_x = 0;
 static int prev_cursor_y = 0;
 
-extern void write_port(unsigned short port, unsigned char data);
+extern void write_port (unsigned short port,
+                        unsigned char data);
 
-void terminal_set_colour(uint32_t fg, uint32_t bg)
+void terminal_set_colour (
+    uint32_t fg, uint32_t bg
+)
 {
     fg_colour = fg;
     bg_colour = bg;
 }
 
-static void draw_char_fb(int cx, int cy, char c)
+static void draw_char_fb (
+    int cx, int cy, char c
+)
 {
     if ((unsigned char)c >= 256)
         return;
@@ -61,37 +66,43 @@ static void draw_char_fb(int cx, int cy, char c)
 
     const uint8_t *glyph = kernos_font8x16[(uint8_t)c];
 
-    for (int y = 0; y < KERNOS_FONT_HEIGHT; y++) {
+    for (int y = 0; y < KERNOS_FONT_HEIGHT; y++)
+    {
         uint8_t row = glyph[y];
 
-        for (int x = 0; x < KERNOS_FONT_WIDTH; x++) {
-            uint32_t colour = (row & (0x80 >> x)) ? fg_colour : bg_colour;
+        for (int x = 0; x < KERNOS_FONT_WIDTH; x++)
+        {
+            uint32_t colour =
+                (row & (0x80 >> x)) ? fg_colour : bg_colour;
             put_pixel(px + x, py + y, colour);
         }
     }
 }
 
-static void draw_cursor_fb(int cx, int cy)
+static void draw_cursor_fb (
+    int cx, int cy
+)
 {
     int px = cx * KERNOS_FONT_WIDTH;
     int py = cy * KERNOS_FONT_HEIGHT;
 
     for (int y = KERNOS_FONT_HEIGHT - 2;
-        y < KERNOS_FONT_HEIGHT;
-        y++)
+         y < KERNOS_FONT_HEIGHT;
+         y++)
     {
-        for (int x = 0;
-            x < KERNOS_FONT_WIDTH;
-            x++)
+        for (int x = 0; x < KERNOS_FONT_WIDTH; x++)
         {
             put_pixel(px + x, py + y, fg_colour);
         }
     }
 }
 
-void update_cursor(void)
+void update_cursor (
+    void
+)
 {
-    unsigned short position = ((cursor_y - scroll_offset) * TERM_W) + cursor_x;
+    unsigned short position =
+        ((cursor_y - scroll_offset) * TERM_W) + cursor_x;
 
     // Send high byte
     write_port(0x3D4, 14);
@@ -102,40 +113,51 @@ void update_cursor(void)
     write_port(0x3D5, position & 0xFF);
 }
 
-void scroll_terminal(void)
+void scroll_terminal (
+    void
+)
 {
     // Move every row up by one
-    for (unsigned int y = 1; y < TERM_H; y++) {
-        for (unsigned int x = 0; x < TERM_W; x++) {
+    for (unsigned int y = 1; y < TERM_H; y++)
+    {
+        for (unsigned int x = 0; x < TERM_W; x++)
+        {
             term[y - 1][x] = term[y][x];
         }
     }
 
     // Clear the bottom row
-    for (unsigned int x = 0; x < TERM_W; x++) {
+    for (unsigned int x = 0; x < TERM_W; x++)
+    {
         term[TERM_H - 1][x] = 0;
     }
 
     // Move prompt up with the scroll to keep it visible
-    if (prompt_y > 0) {
+    if (prompt_y > 0)
+    {
         prompt_y--;
     }
 
     terminal_dirty = 1;
 }
 
-void term_put_char(char c)
+void term_put_char (
+    char c
+)
 {
-    if (cursor_x >= TERM_W) {
+    if (cursor_x >= TERM_W)
+    {
         cursor_x = 0;
         cursor_y++;
     }
 
-    if (c == '\n') {
+    if (c == '\n')
+    {
         cursor_x = 0;
         cursor_y++;
-        
-        if (cursor_y >= VISIBLE_ROWS) {
+
+        if (cursor_y >= VISIBLE_ROWS)
+        {
             scroll_terminal();
             cursor_y = VISIBLE_ROWS - 1;
         }
@@ -144,17 +166,20 @@ void term_put_char(char c)
         return;
     }
 
-    if (cursor_y >= VISIBLE_ROWS) {
+    if (cursor_y >= VISIBLE_ROWS)
+    {
         scroll_terminal();
         cursor_y = VISIBLE_ROWS - 1;
     }
 
-    if (cursor_x >= TERM_W) {
+    if (cursor_x >= TERM_W)
+    {
         cursor_x = 0;
         cursor_y++;
     }
 
-    if (cursor_y < TERM_H && cursor_x < TERM_W) {
+    if (cursor_y < TERM_H && cursor_x < TERM_W)
+    {
         term[cursor_y][cursor_x] = c;
         terminal_dirty = 1;
     }
@@ -164,18 +189,21 @@ void term_put_char(char c)
     update_cursor();
 }
 
-void redraw_input_line(void);
+void redraw_input_line (void);
 
-void term_backspace(void)
+void term_backspace (
+    void
+)
 {
-    if (input_cursor == 0) {
+    if (input_cursor == 0)
+    {
         return;
     }
 
     // Shift characters left
     for (unsigned int i = input_cursor - 1;
-        i < input_length - 1;
-        i++)
+         i < input_length - 1;
+         i++)
     {
         input_buffer[i] = input_buffer[i + 1];
     }
@@ -189,15 +217,18 @@ void term_backspace(void)
     redraw_input_line();
 }
 
-void term_del(void)
+void term_del (
+    void
+)
 {
-    if (input_cursor >= input_length) {
+    if (input_cursor >= input_length)
+    {
         return;
     }
 
     for (unsigned int i = input_cursor;
-        i < input_length - 1;
-        i++)
+         i < input_length - 1;
+         i++)
     {
         input_buffer[i] = input_buffer[i + 1];
     }
@@ -210,18 +241,22 @@ void term_del(void)
     redraw_input_line();
 }
 
-void render_terminal()
+void render_terminal ()
 {
-    if (!terminal_dirty) return;
+    if (!terminal_dirty)
+        return;
 
-    for (unsigned int fb_y = 0; fb_y < VISIBLE_ROWS; fb_y++) {
+    for (unsigned int fb_y = 0; fb_y < VISIBLE_ROWS; fb_y++)
+    {
         unsigned int term_y = fb_y + scroll_offset;
 
-        if (term_y >= TERM_H) {
+        if (term_y >= TERM_H)
+        {
             continue;
         }
 
-        for (unsigned int x = 0; x < TERM_W; x++) {
+        for (unsigned int x = 0; x < TERM_W; x++)
+        {
             draw_char_fb(x, fb_y, term[term_y][x]);
         }
     }
@@ -229,15 +264,20 @@ void render_terminal()
     terminal_dirty = 0;
 }
 
-void render_cursor(void)
+void render_cursor (
+    void
+)
 {
     // Adjust cursor position for scroll offset
     int fb_cursor_x = cursor_x;
     int fb_cursor_y = cursor_y - scroll_offset;
 
-    if (fb_cursor_y >= 0 && fb_cursor_y < VISIBLE_ROWS) {
+    if (fb_cursor_y >= 0 && fb_cursor_y < VISIBLE_ROWS)
+    {
         // Erase the previous cursor by redrawing that cell
-        if (prev_cursor_y >= scroll_offset && prev_cursor_y - scroll_offset < VISIBLE_ROWS) {
+        if (prev_cursor_y >= scroll_offset &&
+            prev_cursor_y - scroll_offset < VISIBLE_ROWS)
+        {
             draw_char_fb(
                 prev_cursor_x,
                 prev_cursor_y - scroll_offset,
@@ -245,11 +285,13 @@ void render_cursor(void)
             );
         }
 
-        if ((timer_ticks % 50) < 25) {
+        if ((timer_ticks % 50) < 25)
+        {
             draw_cursor_fb(fb_cursor_x, fb_cursor_y);
         }
 
-        if ((timer_ticks % 50) > 25) {
+        if ((timer_ticks % 50) > 25)
+        {
             terminal_dirty = 1;
         }
     }
@@ -258,12 +300,15 @@ void render_cursor(void)
     prev_cursor_y = cursor_y;
 }
 
-void kprintln(void)
+void kprintln (
+    void
+)
 {
     cursor_x = 0;
     cursor_y++;
 
-    if (cursor_y >= VISIBLE_ROWS) {
+    if (cursor_y >= VISIBLE_ROWS)
+    {
         scroll_terminal();
         cursor_y = VISIBLE_ROWS - 1;
     }
@@ -271,30 +316,37 @@ void kprintln(void)
     update_cursor();
 }
 
-void kprint(const char *str)
+void kprint (
+    const char *str
+)
 {
     terminal_set_colour(0xFFFFFF, 0x000000);
 
     unsigned int i = 0;
-    while (str[i] != '\0') {
+    while (str[i] != '\0')
+    {
         term_put_char(str[i++]);
     }
 
     terminal_dirty = 1;
 }
 
-void kprint_uint(uint32_t value)
+void kprint_uint (
+    uint32_t value
+)
 {
     char buf[11]; // max: 4294967295 + null
     int i = 10;
     buf[i] = '\0';
 
-    if (value == 0) {
+    if (value == 0)
+    {
         kprint("0");
         return;
     }
 
-    while (value > 0 && i > 0) {
+    while (value > 0 && i > 0)
+    {
         buf[--i] = '0' + (value % 10);
         value /= 10;
     }
@@ -302,7 +354,9 @@ void kprint_uint(uint32_t value)
     kprint(&buf[i]);
 }
 
-void shell_prompt(void)
+void shell_prompt (
+    void
+)
 {
     prompt_x = cursor_x;
     prompt_y = cursor_y;
@@ -310,18 +364,24 @@ void shell_prompt(void)
     kprint(PRIMARY_PROMPT);
 }
 
-void clear_screen(void)
+void clear_screen (
+    void
+)
 {
     // Clear terminal buffer
-    for (unsigned int y = 0; y < TERM_H; y++) {
-        for (unsigned int x = 0; x < TERM_W; x++) {
+    for (unsigned int y = 0; y < TERM_H; y++)
+    {
+        for (unsigned int x = 0; x < TERM_W; x++)
+        {
             term[y][x] = 0;
         }
     }
 
     // Clear framebuffer
-    for (unsigned int y = 0; y < framebuffer.height; y++) {
-        for (unsigned int x = 0; x < framebuffer.width; x++) {
+    for (unsigned int y = 0; y < framebuffer.height; y++)
+    {
+        for (unsigned int x = 0; x < framebuffer.width; x++)
+        {
             put_pixel(x, y, bg_colour);
         }
     }
@@ -333,27 +393,24 @@ void clear_screen(void)
     update_cursor();
 }
 
-void clear_input_line(void) {
-    unsigned int total =
-        3 + input_length;
+void clear_input_line (
+    void
+)
+{
+    unsigned int total = 3 + input_length;
 
-    unsigned int lines =
-        (prompt_x + total) / TERM_W + 1;
+    unsigned int lines = (prompt_x + total) / TERM_W + 1;
 
-    for (unsigned int y = 0;
-        y < lines;
-        y++)
+    for (unsigned int y = 0; y < lines; y++)
     {
-        unsigned int row =
-            prompt_y + y;
+        unsigned int row = prompt_y + y;
 
-        if (row >= TERM_H) {
+        if (row >= TERM_H)
+        {
             break;
         }
 
-        for (unsigned int x = 0;
-            x < TERM_W;
-            x++)
+        for (unsigned int x = 0; x < TERM_W; x++)
         {
             term[row][x] = 0;
         }
@@ -365,7 +422,9 @@ void clear_input_line(void) {
     update_cursor();
 }
 
-void redraw_input_line(void)
+void redraw_input_line (
+    void
+)
 {
     clear_input_line();
 
@@ -377,59 +436,55 @@ void redraw_input_line(void)
     unsigned int x = prompt_x;
     unsigned int y = prompt_y;
 
-    for (unsigned int i = 0;
-        PRIMARY_PROMPT[i];
-        i++)
+    for (unsigned int i = 0; PRIMARY_PROMPT[i]; i++)
     {
         term[y][x++] = PRIMARY_PROMPT[i];
     }
 
-    for (unsigned int i = 0;
-        i < input_length;
-        i++)
+    for (unsigned int i = 0; i < input_length; i++)
     {
-        if (x >= TERM_W) {
+        if (x >= TERM_W)
+        {
             x = 0;
             y++;
 
-            if (y >= TERM_H) {
+            if (y >= TERM_H)
+            {
                 scroll_terminal();
                 y = TERM_H - 1;
             }
 
             x = 0;
 
-            for (unsigned int j = 0;
-                CONTINUATION_PROMPT[j];
-                j++)
+            for (unsigned int j = 0; CONTINUATION_PROMPT[j];
+                 j++)
             {
-                term[y][x++] =
-                    CONTINUATION_PROMPT[j];
+                term[y][x++] = CONTINUATION_PROMPT[j];
             }
         }
 
-        if (y >= TERM_H) {
+        if (y >= TERM_H)
+        {
             break;
         }
 
-        if (x >= TERM_W) {
+        if (x >= TERM_W)
+        {
             continue;
         }
 
-        term[y][x++] =
-            input_buffer[i];
+        term[y][x++] = input_buffer[i];
     }
 
     x = prompt_x + strlen(PRIMARY_PROMPT);
     y = prompt_y;
 
-    for (unsigned int i = 0;
-        i < input_cursor;
-        i++)
+    for (unsigned int i = 0; i < input_cursor; i++)
     {
         x++;
 
-        if (x >= TERM_W) {
+        if (x >= TERM_W)
+        {
             y++;
             x = strlen(PRIMARY_PROMPT);
         }

@@ -1,41 +1,46 @@
-#include "terminal.h"
 #include "shell.h"
-#include "string.h"
-#include "power.h"
-#include "vfs.h"
 #include "memory.h"
+#include "power.h"
+#include "string.h"
+#include "terminal.h"
+#include "vfs.h"
 
 extern char command_history[32][INPUT_BUFFER_SIZE];
 
-int parse_arguments(
-    char *input,
-    char *argv[]
+int parse_arguments (
+    char *input, char *argv[]
 )
 {
     int argc = 0;
     int i = 0;
 
-    while (input[i]) {
-        while (input[i] == ' ') {
+    while (input[i])
+    {
+        while (input[i] == ' ')
+        {
             i++;
         }
 
-        if (!input[i]) {
+        if (!input[i])
+        {
             break;
         }
 
         argv[argc++] = &input[i];
 
-        while (input[i] && input[i] != ' ') {
+        while (input[i] && input[i] != ' ')
+        {
             i++;
         }
 
-        if (input[i]) {
+        if (input[i])
+        {
             input[i] = 0;
             i++;
         }
 
-        if (argc >= MAX_ARGUMENTS) {
+        if (argc >= MAX_ARGUMENTS)
+        {
             break;
         }
     }
@@ -43,7 +48,7 @@ int parse_arguments(
     return argc;
 }
 
-void join_arguments(
+void join_arguments (
     char *dest,
     unsigned int max_len,
     char *argv[],
@@ -53,11 +58,14 @@ void join_arguments(
 {
     int pos = 0;
 
-    for (int i = start; i < argc; i++) {
+    for (int i = start; i < argc; i++)
+    {
         int j = 0;
 
-        while (argv[i][j]) {
-            if (pos >= (int)(max_len - 1)) {
+        while (argv[i][j])
+        {
+            if (pos >= (int)(max_len - 1))
+            {
                 dest[pos] = 0;
                 return;
             }
@@ -65,8 +73,10 @@ void join_arguments(
             dest[pos++] = argv[i][j++];
         }
 
-        if (i != argc - 1) {
-            if (pos >= (int)(max_len - 1)) {
+        if (i != argc - 1)
+        {
+            if (pos >= (int)(max_len - 1))
+            {
                 dest[pos] = 0;
                 return;
             }
@@ -78,37 +88,42 @@ void join_arguments(
     dest[pos] = 0;
 }
 
-void print_uint(unsigned int value)
+void print_uint (
+    unsigned int value
+)
 {
     char buffer[16];
     int i = 0;
 
-    if (value == 0) {
+    if (value == 0)
+    {
         kprint("0");
         return;
     }
 
-    while (value > 0) {
-        buffer[i++] =
-            '0' + (value % 10);
+    while (value > 0)
+    {
+        buffer[i++] = '0' + (value % 10);
 
         value /= 10;
     }
 
-    while (i > 0) {
+    while (i > 0)
+    {
         term_put_char(buffer[--i]);
     }
 }
 
-void execute_command(void)
+void execute_command (
+    void
+)
 {
     input_buffer[input_length] = 0;
 
-    if (input_length > 0) {
-        strcpy(
-            command_history[history_count % 32],
-            input_buffer
-        );
+    if (input_length > 0)
+    {
+        strcpy(command_history[history_count % 32],
+               input_buffer);
 
         history_count++;
         history_index = history_count;
@@ -120,18 +135,16 @@ void execute_command(void)
 
     char *argv[MAX_ARGUMENTS];
 
-    int argc =
-        parse_arguments(
-            input_buffer,
-            argv
-        );
+    int argc = parse_arguments(input_buffer, argv);
 
-    if (argc == 0) {
+    if (argc == 0)
+    {
         shell_prompt();
         return;
     }
 
-    if (strcmp(argv[0], "help")) {
+    if (strcmp(argv[0], "help"))
+    {
         kprint("Builtin commands:\n");
         kprint("    help:   Show available commands\n");
         kprint("    clear:  Clear the terminal\n");
@@ -139,7 +152,9 @@ void execute_command(void)
         kprint("    reboot: Reboot the system\n");
         kprint("    ls:     List files\n");
         kprint("    new:    Create file\n");
-        kprint("    write:  Write text contents to a file\n");
+        kprint(
+            "    write:  Write text contents to a file\n"
+        );
         kprint("    cat:    Read file\n");
         kprint("    mkd:    Make directory\n");
         kprint("    rm:     Remove file or directory\n");
@@ -147,73 +162,85 @@ void execute_command(void)
         kprint("    cp:     Copy file\n");
         kprint("    memi:   Memory information\n");
     }
-    else if (strcmp(argv[0], "clear")) {
+    else if (strcmp(argv[0], "clear"))
+    {
         clear_screen();
     }
-    else if (strcmp(argv[0], "reboot")) {
+    else if (strcmp(argv[0], "reboot"))
+    {
         kprint("Rebooting...\n");
         reboot();
     }
-    else if (strcmp(argv[0], "ls")) {
-        if (argc > 2) {
+    else if (strcmp(argv[0], "ls"))
+    {
+        if (argc > 2)
+        {
             kprint("Usage: ls <dir>\n");
         }
-        else if (argc == 1) {
+        else if (argc == 1)
+        {
             fs_list();
-        } else if (argc == 2) {
+        }
+        else if (argc == 2)
+        {
             fs_list_path(argv[1]);
         }
     }
-    // These are temporary hard-coded tests. Until argument parsing is a thing, just keep it this way for now.
-    else if (strcmp(argv[0], "new")) {
-        if (argc < 2) {
+    // These are temporary hard-coded tests. Until argument
+    // parsing is a thing, just keep it this way for now.
+    else if (strcmp(argv[0], "new"))
+    {
+        if (argc < 2)
+        {
             kprint("Usage: new <name>\n");
         }
-        else if (fs_create(argv[1])) {
+        else if (fs_create(argv[1]))
+        {
             kprint("[  OK  ] NEW ");
             kprint(argv[1]);
             kprintln();
         }
     }
-    else if (strcmp(argv[0], "mkd")) {
-        if (argc < 2) {
+    else if (strcmp(argv[0], "mkd"))
+    {
+        if (argc < 2)
+        {
             kprint("Usage: mkd <name>\n");
         }
-        else if (fs_mkdir(argv[1])) {
+        else if (fs_mkdir(argv[1]))
+        {
             kprint("[  OK  ] MKD ");
             kprint(argv[1]);
             kprintln();
         }
-        else {
+        else
+        {
             kprint("[FAILED] MKD ");
             kprint(argv[1]);
             kprintln();
         }
     }
-    else if (strcmp(argv[0], "write")) {
-        if (argc < 3) {
+    else if (strcmp(argv[0], "write"))
+    {
+        if (argc < 3)
+        {
             kprint("Usage: write <name> <content>\n");
         }
-        else {
+        else
+        {
             char *content =
-                (char*)kmalloc(INPUT_BUFFER_SIZE);
+                (char *)kmalloc(INPUT_BUFFER_SIZE);
 
-            if (!content) {
+            if (!content)
+            {
                 return;
             }
 
             join_arguments(
-                content,
-                INPUT_BUFFER_SIZE,
-                argv,
-                2,
-                argc
+                content, INPUT_BUFFER_SIZE, argv, 2, argc
             );
 
-            if (fs_write(
-                argv[1],
-                content
-            ))
+            if (fs_write(argv[1], content))
             {
                 kprint("[  OK  ] WRITE ");
                 kprint(argv[1]);
@@ -223,17 +250,24 @@ void execute_command(void)
             kfree(content);
         }
     }
-    else if (strcmp(argv[0], "rm")) {
-        if (argc < 2) {
+    else if (strcmp(argv[0], "rm"))
+    {
+        if (argc < 2)
+        {
             kprint("Usage: rm <path>\n");
         }
-        else {
-            for (int i = 1; i < argc; i++) {
-                if (fs_remove(argv[i])) {
+        else
+        {
+            for (int i = 1; i < argc; i++)
+            {
+                if (fs_remove(argv[i]))
+                {
                     kprint("[  OK  ] RM ");
                     kprint(argv[i]);
                     kprintln();
-                } else {
+                }
+                else
+                {
                     kprint("[FAILED] RM ");
                     kprint(argv[i]);
                     kprintln();
@@ -241,18 +275,24 @@ void execute_command(void)
             }
         }
     }
-    else if (strcmp(argv[0], "mv")) {
-        if (argc != 3) {
+    else if (strcmp(argv[0], "mv"))
+    {
+        if (argc != 3)
+        {
             kprint("Usage: mv <src> <dst>\n");
         }
-        else {
-            if (fs_move(argv[1], argv[2])) {
+        else
+        {
+            if (fs_move(argv[1], argv[2]))
+            {
                 kprint("[  OK  ] MV ");
                 kprint(argv[1]);
                 kprint(" -> ");
                 kprint(argv[2]);
                 kprintln();
-            } else {
+            }
+            else
+            {
                 kprint("[FAILED] MV ");
                 kprint(argv[1]);
                 kprint(" -> ");
@@ -261,18 +301,24 @@ void execute_command(void)
             }
         }
     }
-    else if (strcmp(argv[0], "cp")) {
-        if (argc != 3) {
+    else if (strcmp(argv[0], "cp"))
+    {
+        if (argc != 3)
+        {
             kprint("Usage: cp <src> <dst>\n");
         }
-        else {
-            if (fs_copy(argv[1], argv[2])) {
+        else
+        {
+            if (fs_copy(argv[1], argv[2]))
+            {
                 kprint("[  OK  ] CP ");
                 kprint(argv[1]);
                 kprint(" -> ");
                 kprint(argv[2]);
                 kprintln();
-            } else {
+            }
+            else
+            {
                 kprint("[FAILED] CP ");
                 kprint(argv[1]);
                 kprint(" -> ");
@@ -281,10 +327,14 @@ void execute_command(void)
             }
         }
     }
-    else if (strcmp(argv[0], "memi")) {
-        if (argc != 2 && argc != 1) {
+    else if (strcmp(argv[0], "memi"))
+    {
+        if (argc != 2 && argc != 1)
+        {
             kprint("Usage: memi -total|-used|-free\n");
-        } else if (argc == 1) {
+        }
+        else if (argc == 1)
+        {
             kprint("Total: ");
             print_uint(heap_total());
             kprint("\nUsed: ");
@@ -293,50 +343,61 @@ void execute_command(void)
             print_uint(heap_free());
             kprintln();
         }
-        else if (strcmp(argv[1], "-total")) {
+        else if (strcmp(argv[1], "-total"))
+        {
             print_uint(heap_total());
             kprintln();
         }
-        else if (strcmp(argv[1], "-used")) {
+        else if (strcmp(argv[1], "-used"))
+        {
             print_uint(heap_used());
             kprintln();
         }
-        else if (strcmp(argv[1], "-free")) {
+        else if (strcmp(argv[1], "-free"))
+        {
             print_uint(heap_free());
             kprintln();
         }
-        else {
+        else
+        {
             kprint("Unknown flag: ");
             kprint(argv[1]);
             kprintln();
         }
     }
-    else if (strcmp(argv[0], "echo")) {
-        for (int i = 1; i < argc; i++) {
+    else if (strcmp(argv[0], "echo"))
+    {
+        for (int i = 1; i < argc; i++)
+        {
             kprint(argv[i]);
 
-            if (i != argc - 1) {
+            if (i != argc - 1)
+            {
                 kprint(" ");
             }
         }
 
         kprintln();
     }
-    else if (strcmp(argv[0], "cat")) {
-        if (argc != 2) {
+    else if (strcmp(argv[0], "cat"))
+    {
+        if (argc != 2)
+        {
             kprint("Usage: cat <path>\n");
         }
-        else {
-            char *data =
-                fs_read(argv[1]);
-            
-            if (data) {
+        else
+        {
+            char *data = fs_read(argv[1]);
+
+            if (data)
+            {
                 kprint(data);
                 kprintln();
             }
         }
     }
-    else if (input_length != 0) {
+    else if (input_length != 0)
+    {
         kprint("Unknown command: ");
         kprint(argv[0]);
         kprintln();
@@ -348,19 +409,19 @@ void execute_command(void)
     shell_prompt();
 }
 
-void load_history_entry(int index)
+void load_history_entry (
+    int index
+)
 {
     if (index < 0 || index >= (int)history_count)
         return;
-    
-    strcpy(
-        input_buffer,
-        command_history[index % 32]
-    );
+
+    strcpy(input_buffer, command_history[index % 32]);
 
     input_length = 0;
 
-    while (input_buffer[input_length]) {
+    while (input_buffer[input_length])
+    {
         input_length++;
     }
 

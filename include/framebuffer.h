@@ -3,7 +3,8 @@
 
 #include <stdint.h>
 
-typedef struct {
+typedef struct
+{
     uint32_t *address;
     uint32_t width;
     uint32_t height;
@@ -13,13 +14,11 @@ typedef struct {
 
 extern framebuffer_t framebuffer;
 
-void framebuffer_init(
-    uint32_t *address,
-    uint32_t width,
-    uint32_t height,
-    uint32_t pitch,
-    uint8_t bpp
-);
-void put_pixel(uint32_t x, uint32_t y, uint32_t colour);
+void framebuffer_init (uint32_t *address,
+                       uint32_t width,
+                       uint32_t height,
+                       uint32_t pitch,
+                       uint8_t bpp);
+void put_pixel (uint32_t x, uint32_t y, uint32_t colour);
 
 #endif
