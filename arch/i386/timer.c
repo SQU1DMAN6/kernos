@@ -1,5 +1,5 @@
-#include "timer.h"
-#include "io.h"
+#include "../../include/timer.h"
+#include "../../include/io.h"
 
 volatile unsigned int timer_ticks = 0;
 

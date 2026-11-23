@@ -1,6 +1,6 @@
-#include "framebuffer.h"
-#include "kernos8x16.h"
-#include "terminal.h"
+#include "../include/framebuffer.h"
+#include "../include/kernos8x16.h"
+#include "../include/terminal.h"
 #include <stdint.h>
 
 framebuffer_t framebuffer = {0};

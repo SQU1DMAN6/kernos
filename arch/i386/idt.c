@@ -1,6 +1,6 @@
-#include "idt.h"
-#include "io.h"
-#include "pic.h"
+#include "../../include/idt.h"
+#include "../../include/io.h"
+#include "../../include/pic.h"
 
 #define IDT_SIZE 256
 #define INTERRUPT_GATE 0x8e

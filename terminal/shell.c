@@ -1,9 +1,9 @@
-#include "shell.h"
-#include "memory.h"
-#include "power.h"
-#include "string.h"
-#include "terminal.h"
-#include "vfs.h"
+#include "../include/shell.h"
+#include "../include/memory.h"
+#include "../include/power.h"
+#include "../include/string.h"
+#include "../include/terminal.h"
+#include "../include/vfs.h"
 
 extern char command_history[32][INPUT_BUFFER_SIZE];
 

@@ -1,5 +1,5 @@
-#include "pic.h"
-#include "io.h"
+#include "../../include/pic.h"
+#include "../../include/io.h"
 
 void pic_remap_and_mask (
     void

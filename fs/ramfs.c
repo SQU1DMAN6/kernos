@@ -1,7 +1,7 @@
-#include "memory.h"
-#include "string.h"
-#include "terminal.h"
-#include "vfs.h"
+#include "../include/memory.h"
+#include "../include/string.h"
+#include "../include/terminal.h"
+#include "../include/vfs.h"
 #include <stddef.h>
 
 static fs_node_t *ramfs_root = 0;

@@ -1,5 +1,5 @@
-#include "power.h"
-#include "io.h"
+#include "../../include/power.h"
+#include "../../include/io.h"
 
 void reboot (
     void

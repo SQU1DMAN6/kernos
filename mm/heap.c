@@ -1,5 +1,5 @@
-#include "io.h"
-#include "memory.h"
+#include "../include/io.h"
+#include "../include/memory.h"
 
 #define KERNEL_HEAP_SIZE (1024 * 1024)
 

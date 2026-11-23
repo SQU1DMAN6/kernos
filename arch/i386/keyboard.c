@@ -1,7 +1,7 @@
-#include "keyboard.h"
-#include "io.h"
-#include "keyboard_map.h"
-#include "terminal.h"
+#include "../../include/keyboard.h"
+#include "../../include/io.h"
+#include "../../include/keyboard_map.h"
+#include "../../include/terminal.h"
 
 // Keyboard state
 static int left_shift_pressed = 0;

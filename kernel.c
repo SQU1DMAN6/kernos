@@ -1,12 +1,12 @@
-#include "framebuffer.h"
-#include "idt.h"
+#include "include/framebuffer.h"
+#include "include/idt.h"
+#include "include/kedr.h"
+#include "include/memory.h"
+#include "include/pic.h"
 #include "include/serial.h"
-#include "memory.h"
-#include "pic.h"
-#include "serial.h"
-#include "terminal.h"
-#include "timer.h"
-#include "vfs.h"
+#include "include/terminal.h"
+#include "include/timer.h"
+#include "include/vfs.h"
 #include <stddef.h>
 #include <stdint.h>
 
@@ -29,6 +29,14 @@ struct mb_framebuffer_tag
     uint8_t framebuffer_bpp;
     uint8_t framebuffer_type;
     uint16_t reserved;
+
+    // Present for framebuffer_type = 1 , direct RGB.
+    uint8_t red_field_position;
+    uint8_t red_mask_size;
+    uint8_t green_field_position;
+    uint8_t green_mask_size;
+    uint8_t blue_field_position;
+    uint8_t blue_mask_size;
 } __attribute__((packed));
 
 extern void keyboard_handler (void);
@@ -199,6 +207,42 @@ static int init_framebuffer (
                 return 0;
             }
 
+            serial_write_string(
+                "[ BOOT ] Starting KEDR diagnostics\n"
+            );
+
+            kedr_config_t kedr_config = {
+                .address = (volatile uint32_t *)(uintptr_t)
+                               fb->framebuffer_addr,
+                .width = fb->framebuffer_width,
+                .height = fb->framebuffer_height,
+                .pitch = fb->framebuffer_pitch,
+
+                .red_position = fb->red_field_position,
+                .red_size = fb->red_mask_size,
+
+                .green_position = fb->green_field_position,
+                .green_size = fb->green_mask_size,
+
+                .blue_position = fb->blue_field_position,
+                .blue_size = fb->blue_mask_size};
+
+            if (kedr_run(&kedr_config))
+            {
+                serial_write_string(
+                    "[ BOOT ] KEDR diagnostic completed\n"
+                );
+            }
+            else
+            {
+                serial_write_string(
+                    "[ERROR] KEDR rejected framebuffer "
+                    "configuration\n"
+                );
+            }
+
+            // Now we'll init the normal framebuffer driver
+            // after KEDR is done cooking
             framebuffer_init(
                 (uint32_t *)(uintptr_t)fb->framebuffer_addr,
                 fb->framebuffer_width,
@@ -208,9 +252,9 @@ static int init_framebuffer (
             );
 
             serial_write_string(
-                "[ BOOT ] Framebuffer initialisation "
-                "successful\n"
+                "[ BOOT ] Framebuffer driver initialised\n"
             );
+
             return 1;
         }
 

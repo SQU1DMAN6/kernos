@@ -9,7 +9,8 @@ CFLAGS = -Iinclude \
 	-ffreestanding \
 	-fno-pie \
 	-fno-stack-protector \
-	-nostdlib
+	-nostdlib \
+	-mno-sse -mno-sse2 -mno-mmx -msoft-float
 
 all: iso
 
@@ -17,7 +18,7 @@ kasm.o: kernel.asm
 	nasm -f elf32 kernel.asm -o kasm.o
 
 
-kc.o: kernel.c include/keyboard_map.h include/terminal.h include/idt.h include/pic.h include/serial.h
+kc.o: kernel.c include/keyboard_map.h include/terminal.h include/idt.h include/pic.h include/serial.h include/kedr.h
 	gcc -Iinclude -m32 -ffreestanding -fno-pie -fno-stack-protector -nostdlib -c kernel.c -o kc.o
 
 drivers/keyboard_map.o: drivers/keyboard_map.c include/keyboard_map.h
@@ -25,6 +26,9 @@ drivers/keyboard_map.o: drivers/keyboard_map.c include/keyboard_map.h
 
 drivers/framebuffer.o: drivers/framebuffer.c include/framebuffer.h
 	gcc $(CFLAGS) -c drivers/framebuffer.c -o drivers/framebuffer.o
+
+drivers/kedr.o: drivers/kedr.c include/kedr.h include/kernos8x16.h
+	gcc $(CFLAGS) -c drivers/kedr.c -o drivers/kedr.o
 
 fonts/kernos8x16.o: fonts/kernos8x16.c include/kernos8x16.h
 	gcc $(CFLAGS) -c fonts/kernos8x16.c -o fonts/kernos8x16.o
@@ -83,6 +87,7 @@ $(BOOT_DIR)/$(KERNEL): \
 	kc.o \
 	drivers/keyboard_map.o \
 	drivers/framebuffer.o \
+	drivers/kedr.o \
 	fonts/kernos8x16.o \
 	terminal/terminal.o \
 	terminal/shell.o \
@@ -103,6 +108,7 @@ $(BOOT_DIR)/$(KERNEL): \
 	kc.o \
 	drivers/keyboard_map.o \
 	drivers/framebuffer.o \
+	drivers/kedr.o \
 	fonts/kernos8x16.o \
 	terminal/terminal.o \
 	terminal/shell.o \
@@ -125,13 +131,17 @@ iso: $(BOOT_DIR)/$(KERNEL)
 
 run: iso
 	qemu-system-x86_64 \
-	-cpu max \
-	-m 16M \
-	-accel tcg \
-	-machine pc \
-	-cdrom $(KERNEL).iso \
-	-display sdl \
-	-serial stdio
+    	-cpu max \
+    	-m 16M \
+    	-accel tcg \
+    	-machine q35 \
+    	-cdrom $(KERNEL).iso \
+    	-display sdl \
+    	-serial stdio \
+    	-no-reboot \
+    	-no-shutdown \
+    	-d int,cpu_reset \
+    	-D /tmp/kernos-qemu.log
 
 clean:
 	rm -rf *.o */*.o */*/*.o iso kernos.iso

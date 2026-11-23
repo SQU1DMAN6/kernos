@@ -1,4 +1,4 @@
-#include "io.h"
+#include "../../include/io.h"
 
 // The actual implementations of read_port, write_port and
 // load_idt are in assembly (see kernel.asm). This C file

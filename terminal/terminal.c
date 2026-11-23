@@ -1,10 +1,10 @@
-#include "terminal.h"
-#include "framebuffer.h"
-#include "kernos8x16.h"
-#include "keyboard_map.h"
-#include "shell.h"
-#include "string.h"
-#include "timer.h"
+#include "../include/terminal.h"
+#include "../include/framebuffer.h"
+#include "../include/kernos8x16.h"
+#include "../include/keyboard_map.h"
+#include "../include/shell.h"
+#include "../include/string.h"
+#include "../include/timer.h"
 #include <stddef.h>
 #include <stdint.h>
 
