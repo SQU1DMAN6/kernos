@@ -138,10 +138,6 @@ run: iso
     	-cdrom $(KERNEL).iso \
     	-display sdl \
     	-serial stdio \
-    	-no-reboot \
-    	-no-shutdown \
-    	-d int,cpu_reset \
-    	-D /tmp/kernos-qemu.log
 
 clean:
 	rm -rf *.o */*.o */*/*.o iso kernos.iso

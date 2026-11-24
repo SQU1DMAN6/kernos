@@ -278,7 +278,7 @@ int kedr_run (
     kedr_draw_string(16U,
                      test_y + test_height + 56U,
                      "DIRECT FRAMEBUFFER WRITES COMPLETED",
-                     KEDR_WHITE,
+                     KEDR_GREEN,
                      KEDR_BLACK);
 
     // Temporary: Halt the kernel so bare-metal knows kmain
